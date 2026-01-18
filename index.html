@@ -58,11 +58,14 @@
 </div>
 
 <script>
-    let viagens = JSON.parse(localStorage.getItem('gb_final_v20')) || [];
+    let viagens = JSON.parse(localStorage.getItem('gb_final_v25')) || [];
     let atualIdx = null;
     let html5QrCode = null;
+    
+    // Configuração do Áudio (Bip)
+    const audioBip = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
 
-    function salvar() { localStorage.setItem('gb_final_v20', JSON.stringify(viagens)); }
+    function salvar() { localStorage.setItem('gb_final_v25', JSON.stringify(viagens)); }
 
     function adicionarViagem() {
         const h = document.getElementById('input-hora').value;
@@ -101,6 +104,10 @@
 
     async function toggleScanner() {
         const r = document.getElementById('reader');
+        
+        // No iOS, precisamos "dar play" silencioso para o sistema autorizar o som depois
+        audioBip.play().then(() => { audioBip.pause(); audioBip.currentTime = 0; }).catch(() => {});
+
         if(html5QrCode && html5QrCode.isScanning) {
             await html5QrCode.stop();
             r.style.display = 'none';
@@ -109,7 +116,6 @@
         r.style.display = 'block';
         html5QrCode = new Html5Qrcode("reader");
         html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (text) => {
-            // O QR Code decodificado traz o bilhete antes da UF (Ex: 334608PB)
             const match = text.match(/(\d{6})[A-Z]{2}/);
             if(match) {
                 const b = match[1];
@@ -117,7 +123,12 @@
                 if(p && !p.ok) {
                     p.ok = true;
                     salvar(); renderPassageiros();
-                    new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3').play();
+                    
+                    // Tocar o BIP
+                    audioBip.play();
+                    
+                    // Feedback visual rápido
+                    navigator.vibrate ? navigator.vibrate(100) : null;
                 }
             }
         });
@@ -147,21 +158,15 @@
                 Object.keys(lines).forEach(y => {
                     let lineStr = lines[y].sort((a,b) => a.x - b.x).map(it => it.str).join(" ").toUpperCase();
                     
-                    // Verifica se é passageiro embarcando em RECIFE ou CAXANGA
                     if ((lineStr.includes("RECIFE") || lineStr.includes("CAXANGA")) && /^\d{1,2}\s/.test(lineStr.trim())) {
                         let polt = lineStr.trim().match(/^(\d{1,2})/)[1];
-                        
-                        // LÓGICA DO BILHETE: No PDF Guanabara, o bilhete de 6 dígitos 
-                        // aparece logo após o destino (ex: FORTALEZA CE 334608)
-                        // Pegamos o último conjunto de 6 dígitos da linha
                         let numeros6 = lineStr.match(/\b\d{6}\b/g);
                         let bilhete = numeros6 ? numeros6[numeros6.length - 1] : "N/A";
 
-                        // Limpeza do Nome: Remove números (RG/CPF) e telefones
                         let nome = lineStr.replace(/^\d{1,2}/, '')
                                           .split("RECIFE")[0]
-                                          .replace(/\d{7,}/g, '') // remove sequências longas (RG)
-                                          .replace(/\(.*\)/g, '') // remove (81)9999...
+                                          .replace(/\d{7,}/g, '')
+                                          .replace(/\(.*\)/g, '')
                                           .trim();
 
                         encontrados.push({ polt, nome, bilhete, ok: false });
