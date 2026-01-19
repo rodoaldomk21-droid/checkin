@@ -54,8 +54,10 @@
     <div class="card">
         <h2 id="titulo-viagem" style="margin-top:0; margin-bottom:10px;"></h2>
         
-        <label style="font-size: 12px; font-weight: bold; color: #666;">PASSAGEIROS DE CARUARU (TRÂNSITO):</label>
-        <input type="number" id="input-caruaru" class="input-small" placeholder="Ex: 15" onchange="salvarCaruaru()">
+        <div id="div-caruaru" style="display:none; margin-bottom:15px;">
+            <label style="font-size: 12px; font-weight: bold; color: #666;">PASSAGEIROS DE CARUARU (TRÂNSITO):</label>
+            <input type="number" id="input-caruaru" class="input-small" placeholder="Ex: 15" onchange="salvarCaruaru()">
+        </div>
         
         <div id="reader" style="margin-top:15px;"></div>
         <button class="btn btn-qr" onclick="toggleScanner()">📷 ESCANEAR QR CODE</button>
@@ -71,7 +73,6 @@
 </div>
 
 <script>
-    // Suas configurações do Firebase (Injetadas da imagem fornecida)
     const firebaseConfig = {
         apiKey: "AIzaSyAnjkMAQbs9h2cZNfl0SVhgcdix1A0laL0",
         authDomain: "guanabara-checkin.firebaseapp.com",
@@ -134,6 +135,11 @@
         document.getElementById('view-menu').style.display = 'none';
         document.getElementById('view-lista').style.display = 'block';
         document.getElementById('titulo-viagem').innerText = v.hora + " - " + v.destino;
+        
+        // MOSTRAR CAMPO CARUARU APENAS SE FOR 19:05
+        const divCaruaru = document.getElementById('div-caruaru');
+        divCaruaru.style.display = (v.hora === "19:05") ? "block" : "none";
+        
         renderPassageiros(v);
     }
 
@@ -157,43 +163,26 @@
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
                 const text = await page.getTextContent();
-                
-                // Agrupamos textos por linha (Y)
                 let lines = {};
                 text.items.forEach(it => {
                     let y = Math.round(it.transform[5]);
                     if(!lines[y]) lines[y] = [];
                     lines[y].push({ x: it.transform[4], str: it.str });
                 });
-                
-                // Ordenamos as linhas e processamos
                 const sortedY = Object.keys(lines).sort((a, b) => b - a);
-                
                 sortedY.forEach((y, index) => {
                     let currentLine = lines[y].sort((a,b) => a.x - b.x).map(it => it.str).join(" ").toUpperCase();
-                    
-                    // Verificamos se a linha começa com o número da poltrona
                     if (/^\d{1,2}\s/.test(currentLine.trim())) {
-                        
-                        // Procuramos "RECIFE" ou "CAXANGA" nesta linha ou na linha imediatamente abaixo (para casos de quebra de linha)
                         let nextLine = sortedY[index + 1] ? lines[sortedY[index + 1]].map(it => it.str).join(" ").toUpperCase() : "";
                         let combinedText = currentLine + " " + nextLine;
-                        
                         if (combinedText.includes("RECIFE") || combinedText.includes("CAXANGA")) {
                             let polt = currentLine.trim().match(/^(\d{1,2})/)[1];
                             let numeros6 = combinedText.match(/\b\d{6}\b/g);
                             let bilhete = numeros6 ? numeros6[numeros6.length - 1] : "N/A";
                             let isCaxanga = combinedText.includes("CAXANGA");
-                            
-                            // Extração do nome limpando cidades e números
-                            let nome = currentLine.replace(/^\d{1,2}/, '')
-                                        .split("RECIFE")[0].split("CAXANGA")[0]
-                                        .replace(/\d{7,}/g, '').replace(/\(.*\)/g, '').trim();
-
+                            let nome = currentLine.replace(/^\d{1,2}/, '').split("RECIFE")[0].split("CAXANGA")[0].replace(/\d{7,}/g, '').replace(/\(.*\)/g, '').trim();
                             if(bilhete !== "N/A") {
-                                db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}`).update({
-                                    polt: polt, nome: nome, bilhete: bilhete, caxanga: isCaxanga
-                                }).then(() => {
+                                db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}`).update({ polt: polt, nome: nome, bilhete: bilhete, caxanga: isCaxanga }).then(() => {
                                     db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}/ok`).transaction(val => val === null ? false : val);
                                 });
                             }
@@ -244,15 +233,24 @@
             const pax = Object.values(v.passageiros || {});
             const caruaru = parseInt(v.caruaru) || 0;
             const recifeOk = pax.filter(p => p.ok).length;
-            const totalGeral = caruaru + recifeOk;
+            
+            // LÓGICA DE HORÁRIO 19:05
+            const eHorarioCaruaru = (v.hora === "19:05");
+            const totalGeral = eHorarioCaruaru ? (caruaru + recifeOk) : recifeOk;
+            
             const faltas = pax.filter(p => !p.ok).map(p => p.polt);
             const caxangaRec = pax.filter(p => p.ok && p.caxanga).map(p => p.polt);
             const agora = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
             
             let msg = `*RESUMO DE EMBARQUE*\n\n🕒 *Horário:* ${v.hora}\n🏁 *Saída:* ${agora}\n\n`;
             msg += `📊 *TOTAL GERAL:* ${totalGeral}\n`;
-            msg += `↳ Caruaru: ${caruaru}\n`;
-            msg += `↳ Recife: ${recifeOk}\n\n`;
+            
+            if (eHorarioCaruaru) {
+                msg += `↳ Caruaru (Em trânsito): ${caruaru}\n`;
+                msg += `↳ Recife: ${recifeOk}\n\n`;
+            } else {
+                msg += `↳ Recife: ${recifeOk}\n\n`;
+            }
             
             if(caxangaRec.length > 0) {
                 msg += `🔶 *EMBARQUE CAXANGÁ:* ${caxangaRec.length} pax\n`;
@@ -269,5 +267,6 @@
 </script>
 </body>
 </html>
+
 
 
