@@ -23,9 +23,10 @@
         .stat-card { padding: 15px; border-radius: 12px; text-align: center; color: white; font-weight: bold; }
         .p-row { display: flex; align-items: center; padding: 15px; background: white; border-bottom: 1px solid #eee; }
         .p-row.ok { background: #e6ffed; border-left: 6px solid var(--green); }
+        .p-row.caxanga { border-right: 6px solid #ff9800; } /* Marcação visual para Caxangá */
         #reader { width: 100%; border-radius: 15px; overflow: hidden; margin-bottom: 15px; background: #000; display: none; }
         #loader { display:none; text-align:center; padding: 10px; color: var(--blue); font-weight: bold; }
-        .aviso-dd { background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 10px; text-align: center; }
+        input.input-small { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; margin-top: 5px; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -35,8 +36,8 @@
 <div id="view-menu" class="container">
     <div class="card">
         <h3>Nova Viagem</h3>
-        <input type="time" id="input-hora" style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ccc; border-radius:8px; box-sizing: border-box;">
-        <input type="text" id="input-destino" placeholder="Destino (ex: Fortaleza)" style="width:100%; padding:12px; border:1px solid #ccc; border-radius:8px; box-sizing: border-box;">
+        <input type="time" id="input-hora" style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ccc; border-radius:8px;">
+        <input type="text" id="input-destino" placeholder="Destino (ex: Fortaleza)" style="width:100%; padding:12px; border:1px solid #ccc; border-radius:8px;">
         <button class="btn btn-blue" onclick="adicionarViagem()">CRIAR LISTA</button>
     </div>
     <div id="lista-viagens-container"></div>
@@ -51,9 +52,12 @@
     </div>
 
     <div class="card">
-        <h2 id="titulo-viagem" style="margin-top:0"></h2>
-        <div class="aviso-dd">💡 <b>Ônibus DD?</b> Carregue o 1º andar e depois o 2º andar.</div>
-        <div id="reader"></div>
+        <h2 id="titulo-viagem" style="margin-top:0; margin-bottom:10px;"></h2>
+        
+        <label style="font-size: 12px; font-weight: bold; color: #666;">PASSAGEIROS DE CARUARU (TRÂNSITO):</label>
+        <input type="number" id="input-caruaru" class="input-small" placeholder="Ex: 15" onchange="salvarCaruaru()">
+        
+        <div id="reader" style="margin-top:15px;"></div>
         <button class="btn btn-qr" onclick="toggleScanner()">📷 ESCANEAR QR CODE</button>
         <button class="btn btn-blue" onclick="document.getElementById('file-input').click()">📥 CARREGAR PDF</button>
         <input type="file" id="file-input" accept="application/pdf" style="display:none">
@@ -67,7 +71,7 @@
 </div>
 
 <script>
-    // Configurações extraídas da sua imagem
+    // Suas configurações do Firebase
     const firebaseConfig = {
         apiKey: "AIzaSyAnjkMAQbs9h2cZNfl0SVhgcdix1A0laL0",
         authDomain: "guanabara-checkin.firebaseapp.com",
@@ -84,12 +88,12 @@
     let html5QrCode = null;
     const audioBip = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
 
-    // Sincronização em tempo real
     db.ref('viagens').on('value', (snapshot) => {
         const data = snapshot.val();
         renderMenu(data);
         if (atualViagemKey && data && data[atualViagemKey]) {
             renderPassageiros(data[atualViagemKey]);
+            document.getElementById('input-caruaru').value = data[atualViagemKey].caruaru || "";
         }
     });
 
@@ -97,14 +101,17 @@
         const h = document.getElementById('input-hora').value;
         const d = document.getElementById('input-destino').value;
         if(!h || !d) return alert("Preencha os dados!");
-        db.ref('viagens').push({ hora: h, destino: d, passageiros: {} });
+        db.ref('viagens').push({ hora: h, destino: d, passageiros: {}, caruaru: 0 });
+    }
+
+    function salvarCaruaru() {
+        const val = parseInt(document.getElementById('input-caruaru').value) || 0;
+        db.ref(`viagens/${atualViagemKey}`).update({ caruaru: val });
     }
 
     function excluirViagem(key, event) {
         event.stopPropagation();
-        if(confirm("Deseja excluir este horário para todos os dispositivos?")) {
-            db.ref('viagens/' + key).remove();
-        }
+        if(confirm("Deseja excluir este horário?")) db.ref('viagens/' + key).remove();
     }
 
     function renderMenu(data) {
@@ -116,11 +123,8 @@
             const div = document.createElement('div');
             div.className = 'card';
             div.onclick = () => abrirViagem(key, v);
-            div.innerHTML = `
-                <button class="btn-delete-viagem" onclick="excluirViagem('${key}', event)">🗑️ Excluir</button>
-                <strong>${v.hora} - ${v.destino}</strong><br>
-                <small>${pCount} passageiros</small>
-            `;
+            div.innerHTML = `<button class="btn-delete-viagem" onclick="excluirViagem('${key}', event)">🗑️</button>
+                <strong>${v.hora} - ${v.destino}</strong><br><small>${pCount} pax Recife</small>`;
             c.appendChild(div);
         }
     }
@@ -149,7 +153,6 @@
             const pdfjsLib = window['pdfjs-dist/build/pdf'];
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
             const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
-            
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
                 const text = await page.getTextContent();
@@ -159,21 +162,17 @@
                     if(!lines[y]) lines[y] = [];
                     lines[y].push({ x: it.transform[4], str: it.str });
                 });
-                
                 for (let y in lines) {
                     let lineStr = lines[y].sort((a,b) => a.x - b.x).map(it => it.str).join(" ").toUpperCase();
-                    // Lógica para bilhetes da Guanabara Recife
                     if ((lineStr.includes("RECIFE") || lineStr.includes("CAXANGA")) && /^\d{1,2}\s/.test(lineStr.trim())) {
                         let polt = lineStr.trim().match(/^(\d{1,2})/)[1];
                         let numeros6 = lineStr.match(/\b\d{6}\b/g);
                         let bilhete = numeros6 ? numeros6[numeros6.length - 1] : "N/A";
-                        let nome = lineStr.replace(/^\d{1,2}/, '').split("RECIFE")[0].replace(/\d{7,}/g, '').replace(/\(.*\)/g, '').trim();
-                        
-                        // Sincroniza passageiro no Firebase
+                        let isCaxanga = lineStr.includes("CAXANGA");
+                        let nome = lineStr.replace(/^\d{1,2}/, '').split("RECIFE")[0].split("CAXANGA")[0].replace(/\d{7,}/g, '').replace(/\(.*\)/g, '').trim();
                         db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}`).update({
-                            polt: polt, nome: nome, bilhete: bilhete
+                            polt: polt, nome: nome, bilhete: bilhete, caxanga: isCaxanga
                         }).then(() => {
-                            // Só cria o campo 'ok' se ele não existir para não desmarcar quem já embarcou
                             db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}/ok`).transaction(val => val === null ? false : val);
                         });
                     }
@@ -188,28 +187,18 @@
     function renderPassageiros(v) {
         const l = document.getElementById('passageiros-lista');
         l.innerHTML = "";
-        if(!v.passageiros) {
-            document.getElementById('txt-count-ok').innerText = "0";
-            document.getElementById('txt-count-pending').innerText = "0";
-            document.getElementById('acoes-lista').style.display = "none";
-            return;
-        }
-
+        if(!v.passageiros) return;
         const paxArray = Object.values(v.passageiros).sort((a,b) => parseInt(a.polt) - parseInt(b.polt));
         const okCount = paxArray.filter(p => p.ok).length;
-        
         document.getElementById('txt-count-ok').innerText = okCount;
         document.getElementById('txt-count-pending').innerText = paxArray.length - okCount;
         document.getElementById('acoes-lista').style.display = "block";
-
         paxArray.forEach(p => {
             const div = document.createElement('div');
-            div.className = `p-row ${p.ok ? 'ok' : ''}`;
+            div.className = `p-row ${p.ok ? 'ok' : ''} ${p.caxanga ? 'caxanga' : ''}`;
             div.onclick = () => db.ref(`viagens/${atualViagemKey}/passageiros/${p.bilhete}`).update({ok: !p.ok});
-            div.innerHTML = `
-                <input type="checkbox" ${p.ok ? 'checked' : ''} style="width:22px; height:22px;">
-                <div style="margin-left:12px; flex-grow:1;"><strong>${p.polt} - ${p.nome}</strong><br><small>BILHETE: ${p.bilhete}</small></div>
-            `;
+            div.innerHTML = `<input type="checkbox" ${p.ok ? 'checked' : ''} style="width:22px; height:22px;">
+                <div style="margin-left:12px; flex-grow:1;"><strong>${p.polt} - ${p.nome} ${p.caxanga ? '🔶' : ''}</strong><br><small>BILHETE: ${p.bilhete}</small></div>`;
             l.appendChild(div);
         });
     }
@@ -217,32 +206,41 @@
     async function toggleScanner() {
         const r = document.getElementById('reader');
         audioBip.play().then(() => { audioBip.pause(); audioBip.currentTime = 0; }).catch(() => {});
-        if(html5QrCode && html5QrCode.isScanning) {
-            await html5QrCode.stop();
-            r.style.display = 'none';
-            return;
-        }
+        if(html5QrCode && html5QrCode.isScanning) { await html5QrCode.stop(); r.style.display = 'none'; return; }
         r.style.display = 'block';
         html5QrCode = new Html5Qrcode("reader");
         html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (text) => {
-            // O QR Code da imagem mostra o bilhete
             const match = text.match(/(\d{6})[A-Z]{2}/);
-            if(match) {
-                const b = match[1];
-                db.ref(`viagens/${atualViagemKey}/passageiros/${b}`).update({ok: true});
-                audioBip.play();
-            }
+            if(match) { db.ref(`viagens/${atualViagemKey}/passageiros/${match[1]}`).update({ok: true}); audioBip.play(); }
         });
     }
 
     function enviarWhatsApp() {
         db.ref('viagens/' + atualViagemKey).once('value', (snap) => {
             const v = snap.val();
-            const pax = Object.values(v.passageiros);
-            const emb = pax.filter(p => p.ok).length;
+            const pax = Object.values(v.passageiros || {});
+            const caruaru = parseInt(v.caruaru) || 0;
+            const recifeOk = pax.filter(p => p.ok).length;
+            const totalGeral = caruaru + recifeOk;
             const faltas = pax.filter(p => !p.ok).map(p => p.polt);
-            const msg = encodeURIComponent(`*RESUMO DE EMBARQUE*\n\n🕒 *Horário:* ${v.hora}\n✅ *Embarcados:* ${emb}\n❌ *Faltam:* ${faltas.length} (Polt: ${faltas.join(", ")})`);
-            window.open(`https://wa.me/?text=${msg}`);
+            const caxangaRec = pax.filter(p => p.ok && p.caxanga).map(p => p.polt);
+            const agora = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+            
+            let msg = `*RESUMO DE EMBARQUE*\n\n🕒 *Horário:* ${v.hora}\n🏁 *Saída:* ${agora}\n\n`;
+            msg += `📊 *TOTAL GERAL:* ${totalGeral}\n`;
+            msg += `↳ Caruaru: ${caruaru}\n`;
+            msg += `↳ Recife: ${recifeOk}\n\n`;
+            
+            if(caxangaRec.length > 0) {
+                msg += `🔶 *EMBARQUE CAXANGÁ:* ${caxangaRec.length} pax\n`;
+                msg += `↳ Polt: ${caxangaRec.join(", ")}\n\n`;
+            }
+            
+            msg += `❌ *FALTAM (RECIFE):* ${faltas.length}\n`;
+            if(faltas.length > 0) msg += `↳ Polt: ${faltas.join(", ")}\n\n`;
+            msg += `🛰️ *MONOTRIP:* OK`;
+            
+            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
         });
     }
 </script>
