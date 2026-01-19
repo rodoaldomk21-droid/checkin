@@ -18,6 +18,7 @@
         .btn-blue { background: var(--blue); }
         .btn-qr { background: #6b21a8; }
         .btn-whatsapp { background: var(--wsapp); }
+        .btn-red { background: var(--red); }
         .btn-delete-viagem { position: absolute; top: 15px; right: 15px; background: #fee2e2; border: none; padding: 8px; border-radius: 8px; cursor: pointer; color: var(--red); font-weight: bold; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .stat-card { padding: 15px; border-radius: 12px; text-align: center; color: white; font-weight: bold; }
@@ -62,7 +63,7 @@
         <div id="reader" style="margin-top:15px;"></div>
         <button class="btn btn-qr" onclick="toggleScanner()">📷 ESCANEAR QR CODE</button>
         <button class="btn btn-blue" onclick="document.getElementById('file-input').click()">📥 CARREGAR PDF</button>
-        <button class="btn" style="background: var(--red);" onclick="limparLista()">🗑️ LIMPAR PASSAGEIROS</button>
+        <button class="btn btn-red" onclick="limparLista()">🗑️ LIMPAR PASSAGEIROS</button>
         
         <input type="file" id="file-input" accept="application/pdf" style="display:none">
         <div id="loader">⚙️ PROCESSANDO PDF... AGUARDE.</div>
@@ -75,6 +76,7 @@
 </div>
 
 <script>
+    // Configuração Firebase
     const firebaseConfig = {
         apiKey: "AIzaSyAnjkMAQbs9h2cZNfl0SVhgcdix1A0laL0",
         authDomain: "guanabara-checkin.firebaseapp.com",
@@ -91,6 +93,7 @@
     let html5QrCode = null;
     const audioBip = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
 
+    // Escutar mudanças no Banco de Dados
     db.ref('viagens').on('value', (snapshot) => {
         const data = snapshot.val();
         renderMenu(data);
@@ -151,7 +154,9 @@
     }
 
     function irParaMenu() {
-        if(html5QrCode) html5QrCode.stop();
+        if(html5QrCode) {
+            html5QrCode.stop().catch(err => console.log(err));
+        }
         atualViagemKey = null;
         document.getElementById('view-menu').style.display = 'block';
         document.getElementById('view-lista').style.display = 'none';
@@ -186,17 +191,23 @@
         });
     }
 
-    // --- LÓGICA DE PDF COM AGRUPAMENTO DE LINHAS ---
+    // --- LÓGICA DE PDF COM AGRUPAMENTO E LIMPEZA AUTOMÁTICA ---
     document.getElementById('file-input').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if(!file || !atualViagemKey) return;
+        
         document.getElementById('loader').style.display = 'block';
+        
+        // Limpa a lista antes de carregar o novo PDF
+        await db.ref(`viagens/${atualViagemKey}/passageiros`).remove();
+
         const reader = new FileReader();
         reader.onload = async function() {
             try {
                 const pdfjsLib = window['pdfjs-dist/build/pdf'];
                 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
                 const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
+                
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
                     const text = await page.getTextContent();
@@ -217,29 +228,37 @@
                     
                     for (let rIdx = 0; rIdx < rows.length; rIdx++) {
                         let currentLine = rows[rIdx].items.sort((a,b) => a.x - b.x).map(it => it.str).join(" ").toUpperCase();
+                        
+                        // Detecta se a linha começa com número da poltrona
                         if (/^\d{1,2}\s/.test(currentLine.trim())) {
                             let nextLine = rows[rIdx + 1] ? rows[rIdx + 1].items.map(it => it.str).join(" ").toUpperCase() : "";
                             let fullText = currentLine + " " + nextLine;
+                            
                             if (fullText.includes("RECIFE") || fullText.includes("CAXANGA")) {
                                 let polt = currentLine.trim().match(/^(\d{1,2})/)[1];
                                 let bilheteMatch = fullText.match(/\b\d{6}\b/g);
                                 let bilhete = bilheteMatch ? bilheteMatch[bilheteMatch.length - 1] : "N/A";
                                 let isCaxanga = fullText.includes("CAXANGA");
-                                let nome = currentLine.replace(/^\d{1,2}/, '').split("RECIFE")[0].split("CAXANGA")[0].replace(/\d{7,}/g, '').replace(/\(.*\)/g, '').trim();
+                                
+                                let nome = currentLine.replace(/^\d{1,2}/, '')
+                                            .split("RECIFE")[0].split("CAXANGA")[0]
+                                            .replace(/\d{7,}/g, '')
+                                            .replace(/\(.*\)/g, '')
+                                            .trim();
 
                                 if (bilhete !== "N/A") {
                                     await db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}`).update({
-                                        polt: polt, nome: nome, bilhete: bilhete, caxanga: isCaxanga
+                                        polt: polt, nome: nome, bilhete: bilhete, caxanga: isCaxanga, ok: false
                                     });
-                                    await db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}/ok`).transaction(v => v === null ? false : v);
                                 }
                             }
                         }
                     }
                 }
-                alert("Processamento concluído!");
-            } catch (err) { alert("Erro: " + err.message); }
-            finally { 
+                alert("Passageiros carregados!");
+            } catch (err) { 
+                alert("Erro ao processar: " + err.message); 
+            } finally { 
                 document.getElementById('loader').style.display = 'none';
                 e.target.value = ""; 
             }
@@ -249,5 +268,6 @@
 
     async function toggleScanner() {
         const r = document.getElementById('reader');
-        if(
+        if(html5QrCode && html5QrCode.isScanning) { 
+            await
 
