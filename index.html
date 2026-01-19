@@ -65,7 +65,7 @@
         <button class="btn" style="background: var(--red);" onclick="limparLista()">🗑️ LIMPAR PASSAGEIROS</button>
         
         <input type="file" id="file-input" accept="application/pdf" style="display:none">
-        <div id="loader">⚙️ LENDO BILHETES...</div>
+        <div id="loader">⚙️ PROCESSANDO... AGUARDE.</div>
     </div>
 
     <div id="passageiros-lista"></div>
@@ -186,47 +186,69 @@
         });
     }
 
+    // PROCESSAMENTO DE PDF OTIMIZADO (PARA NÃO PULAR PASSAGEIRO)
     document.getElementById('file-input').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if(!file || !atualViagemKey) return;
+        
         document.getElementById('loader').style.display = 'block';
         const reader = new FileReader();
+        
         reader.onload = async function() {
-            const pdfjsLib = window['pdfjs-dist/build/pdf'];
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-            const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const text = await page.getTextContent();
-                let lines = {};
-                text.items.forEach(it => {
-                    let y = Math.round(it.transform[5]);
-                    if(!lines[y]) lines[y] = [];
-                    lines[y].push({ x: it.transform[4], str: it.str });
-                });
-                const sortedY = Object.keys(lines).sort((a, b) => b - a);
-                sortedY.forEach((y, index) => {
-                    let currentLine = lines[y].sort((a,b) => a.x - b.x).map(it => it.str).join(" ").toUpperCase();
-                    if (/^\d{1,2}\s/.test(currentLine.trim())) {
-                        let nextLine = sortedY[index + 1] ? lines[sortedY[index + 1]].map(it => it.str).join(" ").toUpperCase() : "";
-                        let combinedText = currentLine + " " + nextLine;
-                        if (combinedText.includes("RECIFE") || combinedText.includes("CAXANGA")) {
-                            let polt = currentLine.trim().match(/^(\d{1,2})/)[1];
-                            let numeros6 = combinedText.match(/\b\d{6}\b/g);
-                            let bilhete = numeros6 ? numeros6[numeros6.length - 1] : "N/A";
-                            let isCaxanga = combinedText.includes("CAXANGA");
-                            let nome = currentLine.replace(/^\d{1,2}/, '').split("RECIFE")[0].split("CAXANGA")[0].replace(/\d{7,}/g, '').replace(/\(.*\)/g, '').trim();
-                            if(bilhete !== "N/A") {
-                                db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}`).update({ polt: polt, nome: nome, bilhete: bilhete, caxanga: isCaxanga }).then(() => {
-                                    db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}/ok`).transaction(val => val === null ? false : val);
-                                });
+            try {
+                const pdfjsLib = window['pdfjs-dist/build/pdf'];
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+                const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
+                
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const text = await page.getTextContent();
+                    let lines = {};
+                    
+                    text.items.forEach(it => {
+                        let y = Math.round(it.transform[5]);
+                        if(!lines[y]) lines[y] = [];
+                        lines[y].push({ x: it.transform[4], str: it.str });
+                    });
+                    
+                    const sortedY = Object.keys(lines).sort((a, b) => b - a);
+                    
+                    for (let index = 0; index < sortedY.length; index++) {
+                        let y = sortedY[index];
+                        let currentLine = lines[y].sort((a,b) => a.x - b.x).map(it => it.str).join(" ").toUpperCase();
+                        
+                        if (/^\d{1,2}\s/.test(currentLine.trim())) {
+                            let nextLine = sortedY[index + 1] ? lines[sortedY[index + 1]].map(it => it.str).join(" ").toUpperCase() : "";
+                            let combinedText = currentLine + " " + nextLine;
+                            
+                            if (combinedText.includes("RECIFE") || combinedText.includes("CAXANGA")) {
+                                let polt = currentLine.trim().match(/^(\d{1,2})/)[1];
+                                let numeros6 = combinedText.match(/\b\d{6}\b/g);
+                                let bilhete = numeros6 ? numeros6[numeros6.length - 1] : "N/A";
+                                let isCaxanga = combinedText.includes("CAXANGA");
+                                let nome = currentLine.replace(/^\d{1,2}/, '').split("RECIFE")[0].split("CAXANGA")[0].replace(/\d{7,}/g, '').replace(/\(.*\)/g, '').trim();
+                                
+                                if(bilhete !== "N/A") {
+                                    // Adicionamos um pequeno delay (await) para o Firebase não se perder
+                                    await db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}`).update({ 
+                                        polt: polt, 
+                                        nome: nome, 
+                                        bilhete: bilhete, 
+                                        caxanga: isCaxanga,
+                                        ok: false // Garante que começa desmarcado
+                                    });
+                                }
                             }
                         }
                     }
-                });
+                }
+                alert("Processamento concluído!");
+            } catch (err) {
+                alert("Erro ao ler PDF: " + err.message);
+            } finally {
+                document.getElementById('loader').style.display = 'none';
+                e.target.value = "";
             }
-            document.getElementById('loader').style.display = 'none';
-            e.target.value = "";
         };
         reader.readAsArrayBuffer(file);
     });
