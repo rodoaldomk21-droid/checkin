@@ -12,11 +12,9 @@
         header { background: var(--blue); color: white; padding: 15px; text-align: center; font-weight: bold; }
         .container { max-width: 500px; margin: auto; padding: 15px; }
         
-        /* CARD DA VIAGEM COM BOTÃO EXCLUIR */
         .card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; position: relative; }
         .btn-delete-viagem { position: absolute; top: 15px; right: 15px; background: #fee2e2; border: none; padding: 8px; border-radius: 8px; cursor: pointer; color: var(--red); font-weight: bold; }
         
-        /* PAINEL DE CONTADORES */
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .stat-card { padding: 15px; border-radius: 12px; text-align: center; color: white; font-weight: bold; }
         .stat-ok { background: var(--green); }
@@ -32,6 +30,7 @@
         .p-row { display: flex; align-items: center; padding: 15px; background: white; border-bottom: 1px solid #eee; }
         .p-row.ok { background: #e6ffed; border-left: 6px solid var(--green); }
         #reader { width: 100%; border-radius: 15px; overflow: hidden; margin-bottom: 15px; background: #000; display: none; }
+        .aviso-dd { background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 10px; text-align: center; }
     </style>
 </head>
 <body>
@@ -64,10 +63,12 @@
 
     <div class="card">
         <h2 id="titulo-viagem" style="margin-top:0"></h2>
+        <div class="aviso-dd">💡 <b>Ônibus DD?</b> Você pode carregar o mapa do 1º andar e depois o do 2º andar. Os passageiros serão somados.</div>
         <div id="reader"></div>
         <button class="btn btn-qr" onclick="toggleScanner()">📷 ESCANEAR QR CODE</button>
-        <button class="btn btn-blue" onclick="document.getElementById('file-input').click()">📥 CARREGAR PDF</button>
+        <button class="btn btn-blue" onclick="document.getElementById('file-input').click()">📥 CARREGAR PDF (MAPA)</button>
         <input type="file" id="file-input" accept="application/pdf" style="display:none">
+        <button class="btn" style="background:#94a3b8; font-size: 12px; padding: 8px;" onclick="limparListaAtual()">⚠️ Limpar Lista e Recomeçar</button>
     </div>
 
     <div id="passageiros-lista"></div>
@@ -77,13 +78,12 @@
 </div>
 
 <script>
-    // Versão do banco atualizada para limpar cache
-    let viagens = JSON.parse(localStorage.getItem('gb_embarque_v40')) || [];
+    let viagens = JSON.parse(localStorage.getItem('gb_embarque_v50')) || [];
     let atualIdx = null;
     let html5QrCode = null;
     const audioBip = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
 
-    function salvar() { localStorage.setItem('gb_embarque_v40', JSON.stringify(viagens)); }
+    function salvar() { localStorage.setItem('gb_embarque_v50', JSON.stringify(viagens)); }
 
     function adicionarViagem() {
         const h = document.getElementById('input-hora').value;
@@ -93,13 +93,18 @@
         salvar(); renderMenu();
     }
 
-    // FUNÇÃO PARA EXCLUIR VIAGEM
     function excluirViagem(index, event) {
-        event.stopPropagation(); // Não abre a viagem ao clicar no lixo
-        if(confirm("Deseja excluir este horário permanentemente?")) {
+        event.stopPropagation();
+        if(confirm("Deseja excluir este horário?")) {
             viagens.splice(index, 1);
-            salvar();
-            renderMenu();
+            salvar(); renderMenu();
+        }
+    }
+
+    function limparListaAtual() {
+        if(confirm("Isso apagará todos os passageiros carregados nesta viagem. Continuar?")) {
+            viagens[atualIdx].passageiros = [];
+            salvar(); renderPassageiros();
         }
     }
 
@@ -114,7 +119,7 @@
             div.innerHTML = `
                 <button class="btn-delete-viagem" onclick="excluirViagem(${i}, event)">🗑️ Excluir</button>
                 <strong>${v.hora} - ${v.destino}</strong><br>
-                <small>${v.passageiros.length} passageiros na lista</small>
+                <small>${v.passageiros.length} passageiros</small>
             `;
             c.appendChild(div);
         });
@@ -167,7 +172,10 @@
             const pdfjsLib = window['pdfjs-dist/build/pdf'];
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
             const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
-            let encontrados = [];
+            
+            // Pegamos a lista que já existe para acrescentar (Somar para o DD)
+            let novosEncontrados = [];
+            
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
                 const text = await page.getTextContent();
@@ -184,12 +192,23 @@
                         let numeros6 = lineStr.match(/\b\d{6}\b/g);
                         let bilhete = numeros6 ? numeros6[numeros6.length - 1] : "N/A";
                         let nome = lineStr.replace(/^\d{1,2}/, '').split("RECIFE")[0].replace(/\d{7,}/g, '').replace(/\(.*\)/g, '').trim();
-                        encontrados.push({ polt, nome, bilhete, ok: false });
+                        
+                        // Evita duplicar se carregar o mesmo PDF duas vezes
+                        if(!viagens[atualIdx].passageiros.some(existente => existente.bilhete === bilhete)) {
+                            novosEncontrados.push({ polt, nome, bilhete, ok: false });
+                        }
                     }
                 });
             }
-            viagens[atualIdx].passageiros = encontrados.sort((a,b) => parseInt(a.polt) - parseInt(b.polt));
+            
+            // Acrescenta os novos à lista atual
+            viagens[atualIdx].passageiros = [...viagens[atualIdx].passageiros, ...novosEncontrados];
+            
+            // Reordena por poltrona
+            viagens[atualIdx].passageiros.sort((a,b) => parseInt(a.polt) - parseInt(b.polt));
+            
             salvar(); renderPassageiros();
+            e.target.value = ""; // limpa o input
         };
         reader.readAsArrayBuffer(file);
     });
@@ -199,11 +218,8 @@
         l.innerHTML = "";
         const pax = viagens[atualIdx].passageiros;
         
-        // CALCULA QUANTIDADES SOLICITADAS
         const ok = pax.filter(p => p.ok).length;
         const faltam = pax.length - ok;
-        
-        // ATUALIZA O PAINEL VISUAL
         document.getElementById('txt-count-ok').innerText = ok;
         document.getElementById('txt-count-pending').innerText = faltam;
 
@@ -227,7 +243,7 @@
         const emb = v.passageiros.filter(p => p.ok).length;
         const faltas = v.passageiros.filter(p => !p.ok).map(p => p.polt);
         const agora = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-        const msg = encodeURIComponent(`*RESUMO DE EMBARQUE*\n\n🕒 *Horário:* ${v.hora}\n✅ *Embarcados:* ${emb}\n❌ *Faltam:* ${faltas.length} (Poltronas: ${faltas.join(", ")})\n🏁 *Horário de saída:* ${agora}`);
+        const msg = encodeURIComponent(`*RESUMO DE EMBARQUE*\n\n🕒 *Horário:* ${v.hora}\n✅ *Embarcados:* ${emb}\n❌ *Faltam:* ${faltas.length} (Poltronas: ${faltas.join(", ")})\n🏁 *Saída:* ${agora}`);
         window.open(`https://wa.me/?text=${msg}`);
     }
 
