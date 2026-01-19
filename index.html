@@ -23,7 +23,7 @@
         .stat-card { padding: 15px; border-radius: 12px; text-align: center; color: white; font-weight: bold; }
         .p-row { display: flex; align-items: center; padding: 15px; background: white; border-bottom: 1px solid #eee; }
         .p-row.ok { background: #e6ffed; border-left: 6px solid var(--green); }
-        .p-row.caxanga { border-right: 6px solid #ff9800; } /* Marcação visual para Caxangá */
+        .p-row.caxanga { border-right: 6px solid #ff9800; background: #fffaf0; }
         #reader { width: 100%; border-radius: 15px; overflow: hidden; margin-bottom: 15px; background: #000; display: none; }
         #loader { display:none; text-align:center; padding: 10px; color: var(--blue); font-weight: bold; }
         input.input-small { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; margin-top: 5px; box-sizing: border-box; }
@@ -71,7 +71,7 @@
 </div>
 
 <script>
-    // Suas configurações do Firebase
+    // Suas configurações do Firebase (Injetadas da imagem fornecida)
     const firebaseConfig = {
         apiKey: "AIzaSyAnjkMAQbs9h2cZNfl0SVhgcdix1A0laL0",
         authDomain: "guanabara-checkin.firebaseapp.com",
@@ -153,30 +153,53 @@
             const pdfjsLib = window['pdfjs-dist/build/pdf'];
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
             const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
+            
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
                 const text = await page.getTextContent();
+                
+                // Agrupamos textos por linha (Y)
                 let lines = {};
                 text.items.forEach(it => {
                     let y = Math.round(it.transform[5]);
                     if(!lines[y]) lines[y] = [];
                     lines[y].push({ x: it.transform[4], str: it.str });
                 });
-                for (let y in lines) {
-                    let lineStr = lines[y].sort((a,b) => a.x - b.x).map(it => it.str).join(" ").toUpperCase();
-                    if ((lineStr.includes("RECIFE") || lineStr.includes("CAXANGA")) && /^\d{1,2}\s/.test(lineStr.trim())) {
-                        let polt = lineStr.trim().match(/^(\d{1,2})/)[1];
-                        let numeros6 = lineStr.match(/\b\d{6}\b/g);
-                        let bilhete = numeros6 ? numeros6[numeros6.length - 1] : "N/A";
-                        let isCaxanga = lineStr.includes("CAXANGA");
-                        let nome = lineStr.replace(/^\d{1,2}/, '').split("RECIFE")[0].split("CAXANGA")[0].replace(/\d{7,}/g, '').replace(/\(.*\)/g, '').trim();
-                        db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}`).update({
-                            polt: polt, nome: nome, bilhete: bilhete, caxanga: isCaxanga
-                        }).then(() => {
-                            db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}/ok`).transaction(val => val === null ? false : val);
-                        });
+                
+                // Ordenamos as linhas e processamos
+                const sortedY = Object.keys(lines).sort((a, b) => b - a);
+                
+                sortedY.forEach((y, index) => {
+                    let currentLine = lines[y].sort((a,b) => a.x - b.x).map(it => it.str).join(" ").toUpperCase();
+                    
+                    // Verificamos se a linha começa com o número da poltrona
+                    if (/^\d{1,2}\s/.test(currentLine.trim())) {
+                        
+                        // Procuramos "RECIFE" ou "CAXANGA" nesta linha ou na linha imediatamente abaixo (para casos de quebra de linha)
+                        let nextLine = sortedY[index + 1] ? lines[sortedY[index + 1]].map(it => it.str).join(" ").toUpperCase() : "";
+                        let combinedText = currentLine + " " + nextLine;
+                        
+                        if (combinedText.includes("RECIFE") || combinedText.includes("CAXANGA")) {
+                            let polt = currentLine.trim().match(/^(\d{1,2})/)[1];
+                            let numeros6 = combinedText.match(/\b\d{6}\b/g);
+                            let bilhete = numeros6 ? numeros6[numeros6.length - 1] : "N/A";
+                            let isCaxanga = combinedText.includes("CAXANGA");
+                            
+                            // Extração do nome limpando cidades e números
+                            let nome = currentLine.replace(/^\d{1,2}/, '')
+                                        .split("RECIFE")[0].split("CAXANGA")[0]
+                                        .replace(/\d{7,}/g, '').replace(/\(.*\)/g, '').trim();
+
+                            if(bilhete !== "N/A") {
+                                db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}`).update({
+                                    polt: polt, nome: nome, bilhete: bilhete, caxanga: isCaxanga
+                                }).then(() => {
+                                    db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}/ok`).transaction(val => val === null ? false : val);
+                                });
+                            }
+                        }
                     }
-                }
+                });
             }
             document.getElementById('loader').style.display = 'none';
             e.target.value = "";
@@ -198,7 +221,7 @@
             div.className = `p-row ${p.ok ? 'ok' : ''} ${p.caxanga ? 'caxanga' : ''}`;
             div.onclick = () => db.ref(`viagens/${atualViagemKey}/passageiros/${p.bilhete}`).update({ok: !p.ok});
             div.innerHTML = `<input type="checkbox" ${p.ok ? 'checked' : ''} style="width:22px; height:22px;">
-                <div style="margin-left:12px; flex-grow:1;"><strong>${p.polt} - ${p.nome} ${p.caxanga ? '🔶' : ''}</strong><br><small>BILHETE: ${p.bilhete}</small></div>`;
+                <div style="margin-left:12px; flex-grow:1;"><strong>${p.polt} - ${p.nome} ${p.caxanga ? '🔶 (CAXANGÁ)' : ''}</strong><br><small>BILHETE: ${p.bilhete}</small></div>`;
             l.appendChild(div);
         });
     }
