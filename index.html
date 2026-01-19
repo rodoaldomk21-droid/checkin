@@ -21,7 +21,7 @@
         .btn-delete-viagem { position: absolute; top: 15px; right: 15px; background: #fee2e2; border: none; padding: 8px; border-radius: 8px; cursor: pointer; color: var(--red); font-weight: bold; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .stat-card { padding: 15px; border-radius: 12px; text-align: center; color: white; font-weight: bold; }
-        .p-row { display: flex; align-items: center; padding: 15px; background: white; border-bottom: 1px solid #eee; }
+        .p-row { display: flex; align-items: center; padding: 15px; background: white; border-bottom: 1px solid #eee; cursor: pointer; }
         .p-row.ok { background: #e6ffed; border-left: 6px solid var(--green); }
         .p-row.caxanga { border-right: 6px solid #ff9800; background: #fffaf0; }
         #reader { width: 100%; border-radius: 15px; overflow: hidden; margin-bottom: 15px; background: #000; display: none; }
@@ -136,7 +136,7 @@
         document.getElementById('view-lista').style.display = 'block';
         document.getElementById('titulo-viagem').innerText = v.hora + " - " + v.destino;
         
-        // MOSTRAR CAMPO CARUARU APENAS SE FOR 19:05
+        // Regra do horário 19:05 para mostrar campo Caruaru
         const divCaruaru = document.getElementById('div-caruaru');
         divCaruaru.style.display = (v.hora === "19:05") ? "block" : "none";
         
@@ -150,6 +150,38 @@
         document.getElementById('view-lista').style.display = 'none';
     }
 
+    function renderPassageiros(v) {
+        const l = document.getElementById('passageiros-lista');
+        const txtOk = document.getElementById('txt-count-ok');
+        const txtPending = document.getElementById('txt-count-pending');
+        l.innerHTML = "";
+        
+        // CORREÇÃO: Se não houver passageiros, zera os contadores e esconde o botão WhatsApp
+        if(!v.passageiros || Object.keys(v.passageiros).length === 0) {
+            txtOk.innerText = "0";
+            txtPending.innerText = "0";
+            document.getElementById('acoes-lista').style.display = "none";
+            return;
+        }
+
+        const paxArray = Object.values(v.passageiros).sort((a,b) => parseInt(a.polt) - parseInt(b.polt));
+        const okCount = paxArray.filter(p => p.ok).length;
+        
+        txtOk.innerText = okCount;
+        txtPending.innerText = paxArray.length - okCount;
+        document.getElementById('acoes-lista').style.display = "block";
+
+        paxArray.forEach(p => {
+            const div = document.createElement('div');
+            div.className = `p-row ${p.ok ? 'ok' : ''} ${p.caxanga ? 'caxanga' : ''}`;
+            div.onclick = () => db.ref(`viagens/${atualViagemKey}/passageiros/${p.bilhete}`).update({ok: !p.ok});
+            div.innerHTML = `<input type="checkbox" ${p.ok ? 'checked' : ''} style="width:22px; height:22px;">
+                <div style="margin-left:12px; flex-grow:1;"><strong>${p.polt} - ${p.nome} ${p.caxanga ? '🔶 (CAXANGÁ)' : ''}</strong><br><small>BILHETE: ${p.bilhete}</small></div>`;
+            l.appendChild(div);
+        });
+    }
+
+    // Processamento de PDF
     document.getElementById('file-input').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if(!file || !atualViagemKey) return;
@@ -196,25 +228,6 @@
         reader.readAsArrayBuffer(file);
     });
 
-    function renderPassageiros(v) {
-        const l = document.getElementById('passageiros-lista');
-        l.innerHTML = "";
-        if(!v.passageiros) return;
-        const paxArray = Object.values(v.passageiros).sort((a,b) => parseInt(a.polt) - parseInt(b.polt));
-        const okCount = paxArray.filter(p => p.ok).length;
-        document.getElementById('txt-count-ok').innerText = okCount;
-        document.getElementById('txt-count-pending').innerText = paxArray.length - okCount;
-        document.getElementById('acoes-lista').style.display = "block";
-        paxArray.forEach(p => {
-            const div = document.createElement('div');
-            div.className = `p-row ${p.ok ? 'ok' : ''} ${p.caxanga ? 'caxanga' : ''}`;
-            div.onclick = () => db.ref(`viagens/${atualViagemKey}/passageiros/${p.bilhete}`).update({ok: !p.ok});
-            div.innerHTML = `<input type="checkbox" ${p.ok ? 'checked' : ''} style="width:22px; height:22px;">
-                <div style="margin-left:12px; flex-grow:1;"><strong>${p.polt} - ${p.nome} ${p.caxanga ? '🔶 (CAXANGÁ)' : ''}</strong><br><small>BILHETE: ${p.bilhete}</small></div>`;
-            l.appendChild(div);
-        });
-    }
-
     async function toggleScanner() {
         const r = document.getElementById('reader');
         audioBip.play().then(() => { audioBip.pause(); audioBip.currentTime = 0; }).catch(() => {});
@@ -234,7 +247,7 @@
             const caruaru = parseInt(v.caruaru) || 0;
             const recifeOk = pax.filter(p => p.ok).length;
             
-            // LÓGICA DE HORÁRIO 19:05
+            // Regra do horário 19:05
             const eHorarioCaruaru = (v.hora === "19:05");
             const totalGeral = eHorarioCaruaru ? (caruaru + recifeOk) : recifeOk;
             
