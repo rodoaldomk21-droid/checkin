@@ -62,6 +62,8 @@
         <div id="reader" style="margin-top:15px;"></div>
         <button class="btn btn-qr" onclick="toggleScanner()">📷 ESCANEAR QR CODE</button>
         <button class="btn btn-blue" onclick="document.getElementById('file-input').click()">📥 CARREGAR PDF</button>
+        <button class="btn" style="background: var(--red);" onclick="limparLista()">🗑️ LIMPAR PASSAGEIROS</button>
+        
         <input type="file" id="file-input" accept="application/pdf" style="display:none">
         <div id="loader">⚙️ LENDO BILHETES...</div>
     </div>
@@ -110,6 +112,15 @@
         db.ref(`viagens/${atualViagemKey}`).update({ caruaru: val });
     }
 
+    function limparLista() {
+        if (!atualViagemKey) return;
+        if (confirm("Deseja apagar TODOS os passageiros desta lista?")) {
+            db.ref(`viagens/${atualViagemKey}/passageiros`).remove()
+                .then(() => alert("Lista removida!"))
+                .catch((e) => alert("Erro: " + e.message));
+        }
+    }
+
     function excluirViagem(key, event) {
         event.stopPropagation();
         if(confirm("Deseja excluir este horário?")) db.ref('viagens/' + key).remove();
@@ -135,11 +146,7 @@
         document.getElementById('view-menu').style.display = 'none';
         document.getElementById('view-lista').style.display = 'block';
         document.getElementById('titulo-viagem').innerText = v.hora + " - " + v.destino;
-        
-        // Regra do horário 19:05 para mostrar campo Caruaru
-        const divCaruaru = document.getElementById('div-caruaru');
-        divCaruaru.style.display = (v.hora === "19:05") ? "block" : "none";
-        
+        document.getElementById('div-caruaru').style.display = (v.hora === "19:05") ? "block" : "none";
         renderPassageiros(v);
     }
 
@@ -156,7 +163,6 @@
         const txtPending = document.getElementById('txt-count-pending');
         l.innerHTML = "";
         
-        // CORREÇÃO: Se não houver passageiros, zera os contadores e esconde o botão WhatsApp
         if(!v.passageiros || Object.keys(v.passageiros).length === 0) {
             txtOk.innerText = "0";
             txtPending.innerText = "0";
@@ -166,7 +172,6 @@
 
         const paxArray = Object.values(v.passageiros).sort((a,b) => parseInt(a.polt) - parseInt(b.polt));
         const okCount = paxArray.filter(p => p.ok).length;
-        
         txtOk.innerText = okCount;
         txtPending.innerText = paxArray.length - okCount;
         document.getElementById('acoes-lista').style.display = "block";
@@ -181,7 +186,6 @@
         });
     }
 
-    // Processamento de PDF
     document.getElementById('file-input').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if(!file || !atualViagemKey) return;
@@ -191,7 +195,6 @@
             const pdfjsLib = window['pdfjs-dist/build/pdf'];
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
             const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
-            
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
                 const text = await page.getTextContent();
@@ -230,7 +233,6 @@
 
     async function toggleScanner() {
         const r = document.getElementById('reader');
-        audioBip.play().then(() => { audioBip.pause(); audioBip.currentTime = 0; }).catch(() => {});
         if(html5QrCode && html5QrCode.isScanning) { await html5QrCode.stop(); r.style.display = 'none'; return; }
         r.style.display = 'block';
         html5QrCode = new Html5Qrcode("reader");
@@ -246,40 +248,29 @@
             const pax = Object.values(v.passageiros || {});
             const caruaru = parseInt(v.caruaru) || 0;
             const recifeOk = pax.filter(p => p.ok).length;
-            
-            // Regra do horário 19:05
             const eHorarioCaruaru = (v.hora === "19:05");
             const totalGeral = eHorarioCaruaru ? (caruaru + recifeOk) : recifeOk;
-            
             const faltas = pax.filter(p => !p.ok).map(p => p.polt);
             const caxangaRec = pax.filter(p => p.ok && p.caxanga).map(p => p.polt);
             const agora = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-            
             let msg = `*RESUMO DE EMBARQUE*\n\n🕒 *Horário:* ${v.hora}\n🏁 *Saída:* ${agora}\n\n`;
             msg += `📊 *TOTAL GERAL:* ${totalGeral}\n`;
-            
             if (eHorarioCaruaru) {
-                msg += `↳ Caruaru (Em trânsito): ${caruaru}\n`;
-                msg += `↳ Recife: ${recifeOk}\n\n`;
+                msg += `↳ Caruaru (Em trânsito): ${caruaru}\n↳ Recife: ${recifeOk}\n\n`;
             } else {
                 msg += `↳ Recife: ${recifeOk}\n\n`;
             }
-            
             if(caxangaRec.length > 0) {
-                msg += `🔶 *EMBARQUE CAXANGÁ:* ${caxangaRec.length} pax\n`;
-                msg += `↳ Polt: ${caxangaRec.join(", ")}\n\n`;
+                msg += `🔶 *EMBARQUE CAXANGÁ:* ${caxangaRec.length} pax\n↳ Polt: ${caxangaRec.join(", ")}\n\n`;
             }
-            
             msg += `❌ *FALTAM (RECIFE):* ${faltas.length}\n`;
             if(faltas.length > 0) msg += `↳ Polt: ${faltas.join(", ")}\n\n`;
             msg += `🛰️ *MONOTRIP:* OK`;
-            
             window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
         });
     }
 </script>
 </body>
 </html>
-
 
 
