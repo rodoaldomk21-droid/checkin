@@ -65,7 +65,7 @@
         <button class="btn" style="background: var(--red);" onclick="limparLista()">🗑️ LIMPAR PASSAGEIROS</button>
         
         <input type="file" id="file-input" accept="application/pdf" style="display:none">
-        <div id="loader">⚙️ PROCESSANDO... AGUARDE.</div>
+        <div id="loader">⚙️ PROCESSANDO PDF... AGUARDE.</div>
     </div>
 
     <div id="passageiros-lista"></div>
@@ -186,7 +186,7 @@
         });
     }
 
-    // PROCESSAMENTO DE PDF OTIMIZADO (PARA NÃO PULAR PASSAGEIRO)
+    // PROCESSAMENTO DE PDF OTIMIZADO (CORREÇÃO POLTRONA 13)
     document.getElementById('file-input').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if(!file || !atualViagemKey) return;
@@ -221,22 +221,29 @@
                             let nextLine = sortedY[index + 1] ? lines[sortedY[index + 1]].map(it => it.str).join(" ").toUpperCase() : "";
                             let combinedText = currentLine + " " + nextLine;
                             
-                            if (combinedText.includes("RECIFE") || combinedText.includes("CAXANGA")) {
-                                let polt = currentLine.trim().match(/^(\d{1,2})/)[1];
+                            let poltMatch = currentLine.trim().match(/^(\d{1,2})/);
+                            let polt = poltMatch ? poltMatch[1] : null;
+
+                            if (polt && (combinedText.includes("RECIFE") || combinedText.includes("CAXANGA"))) {
                                 let numeros6 = combinedText.match(/\b\d{6}\b/g);
                                 let bilhete = numeros6 ? numeros6[numeros6.length - 1] : "N/A";
                                 let isCaxanga = combinedText.includes("CAXANGA");
-                                let nome = currentLine.replace(/^\d{1,2}/, '').split("RECIFE")[0].split("CAXANGA")[0].replace(/\d{7,}/g, '').replace(/\(.*\)/g, '').trim();
                                 
+                                let nomeRaw = currentLine.replace(/^\d{1,2}/, '').trim();
+                                let nome = nomeRaw.split("RECIFE")[0].split("CAXANGA")[0].replace(/\d{7,}/g, '').replace(/\(.*\)/g, '').trim();
+                                
+                                if(nome.length < 3 && bilhete !== "N/A") {
+                                    nome = currentLine.split(bilhete)[0].replace(/^\d{1,2}/, '').trim();
+                                }
+
                                 if(bilhete !== "N/A") {
-                                    // Adicionamos um pequeno delay (await) para o Firebase não se perder
                                     await db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}`).update({ 
                                         polt: polt, 
                                         nome: nome, 
                                         bilhete: bilhete, 
-                                        caxanga: isCaxanga,
-                                        ok: false // Garante que começa desmarcado
+                                        caxanga: isCaxanga
                                     });
+                                    await db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}/ok`).transaction(val => val === null ? false : val);
                                 }
                             }
                         }
@@ -294,5 +301,4 @@
 </script>
 </body>
 </html>
-
 
