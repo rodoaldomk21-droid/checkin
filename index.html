@@ -3,75 +3,213 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guanabara Check-in PRO (DD Multilistas)</title>
+    <title>Guanabara Check-in</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
+
     <style>
-        :root { --blue: #004a99; --green: #28a745; --red: #dc3545; --bg: #f1f5f9; --wsapp: #25d366; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 0; }
-        header { background: var(--blue); color: white; padding: 15px; text-align: center; font-weight: bold; }
-        .container { max-width: 500px; margin: auto; padding: 15px; }
-        .card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; position: relative; }
-        .btn { border: none; padding: 16px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; color: white; font-size: 16px; margin-top: 10px; display: block; text-align: center; text-decoration: none; }
-        .btn-blue { background: var(--blue); }
-        .btn-qr { background: #6b21a8; }
-        .btn-whatsapp { background: var(--wsapp); }
-        .btn-red { background: var(--red); }
-        .btn-delete-viagem { position: absolute; top: 15px; right: 15px; background: #fee2e2; border: none; padding: 8px; border-radius: 8px; cursor: pointer; color: var(--red); font-weight: bold; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .stat-card { padding: 15px; border-radius: 12px; text-align: center; color: white; font-weight: bold; }
-        .p-row { display: flex; align-items: center; padding: 15px; background: white; border-bottom: 1px solid #eee; cursor: pointer; }
-        .p-row.ok { background: #e6ffed; border-left: 6px solid var(--green); }
-        .p-row.caxanga { border-right: 6px solid #ff9800; background: #fffaf0; }
-        #reader { width: 100%; border-radius: 15px; overflow: hidden; margin-bottom: 15px; background: #000; display: none; }
-        #loader { display:none; text-align:center; padding: 10px; color: var(--blue); font-weight: bold; }
-        input.input-small { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; margin-top: 5px; box-sizing: border-box; }
+        :root {
+            --primary: #002d5e;
+            --accent: #ed1c24;
+            --success: #10b981;
+            --pending: #f59e0b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--bg); 
+            margin: 0; 
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        header { 
+            background: var(--primary); 
+            color: white; 
+            padding: 20px 15px; 
+            text-align: center; 
+            font-weight: 700;
+            font-size: 1.2rem;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        .container { 
+            max-width: 480px; 
+            margin: auto; 
+            padding: 20px; 
+        }
+
+        .card { 
+            background: var(--card); 
+            border-radius: 16px; 
+            padding: 24px; 
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); 
+            margin-bottom: 20px;
+            border: 1px solid #f1f5f9;
+        }
+
+        h3 { margin-top: 0; font-weight: 700; color: var(--primary); text-align: center; }
+
+        input[type="time"], input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 16px;
+            box-sizing: border-box;
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+
+        input:focus { border-color: var(--primary); outline: none; }
+
+        .btn { 
+            border: none; 
+            padding: 16px; 
+            border-radius: 12px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            width: 100%; 
+            color: white; 
+            font-size: 15px; 
+            margin-top: 10px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: opacity 0.2s;
+        }
+
+        .btn:active { opacity: 0.8; }
+        .btn-blue { background: var(--primary); }
+        .btn-qr { background: #7c3aed; }
+        .btn-whatsapp { background: #25d366; }
+        .btn-red { background: #fee2e2; color: #dc2626; font-size: 14px; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .stat-card { 
+            padding: 15px; 
+            border-radius: 14px; 
+            text-align: center; 
+            color: white; 
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .p-row { 
+            display: flex; 
+            align-items: center; 
+            padding: 16px; 
+            background: white; 
+            border-radius: 12px;
+            margin-bottom: 8px;
+            cursor: pointer; 
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+
+        .p-row.ok { 
+            background: #f0fdf4; 
+            border-color: var(--success);
+        }
+
+        .p-row.caxanga { 
+            border-right: 8px solid #f59e0b;
+        }
+
+        .polt-badge {
+            background: #f1f5f9;
+            color: var(--primary);
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-weight: 700;
+            margin-right: 15px;
+        }
+
+        .p-row.ok .polt-badge { background: var(--success); color: white; }
+
+        #reader { width: 100%; border-radius: 16px; overflow: hidden; margin-bottom: 15px; background: #000; display: none; }
+        
+        #loader { 
+            display:none; 
+            text-align:center; 
+            padding: 20px; 
+            color: var(--primary); 
+            font-weight: 600; 
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        .btn-delete-viagem { 
+            position: absolute; top: 15px; right: 15px; 
+            background: #fff; border: 1px solid #fee2e2; 
+            padding: 5px 10px; border-radius: 8px; color: #ef4444; 
+        }
     </style>
 </head>
 <body>
 
-<header>GUANABARA - RECIFE (DD)</header>
+<header>GUANABARA RECIFE</header>
 
 <div id="view-menu" class="container">
     <div class="card">
         <h3>Nova Viagem</h3>
-        <input type="time" id="input-hora" style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ccc; border-radius:8px;">
-        <input type="text" id="input-destino" placeholder="Destino (ex: Fortaleza)" style="width:100%; padding:12px; border:1px solid #ccc; border-radius:8px;">
-        <button class="btn btn-blue" onclick="adicionarViagem()">CRIAR LISTA</button>
+        <input type="time" id="input-hora">
+        <input type="text" id="input-destino" placeholder="Destino Final">
+        <button class="btn btn-blue" onclick="adicionarViagem()">CRIAR LISTA DE EMBARQUE</button>
     </div>
     <div id="lista-viagens-container"></div>
 </div>
 
 <div id="view-lista" class="container" style="display:none">
-    <button onclick="irParaMenu()" style="background:none; border:none; color:var(--blue); font-weight:bold; margin-bottom:15px; cursor:pointer;">← VOLTAR</button>
+    <button onclick="irParaMenu()" style="background:none; border:none; color:var(--text-sub); font-weight:600; margin-bottom:15px; cursor:pointer; display: flex; align-items: center; gap: 5px;">← Voltar ao Menu</button>
     
     <div class="stats-grid">
-        <div class="stat-card" style="background: var(--green);">EMBARCADOS: <span id="txt-count-ok">0</span></div>
-        <div class="stat-card" style="background: var(--red);">NÃO EMBARCADO: <span id="txt-count-pending">0</span></div>
+        <div class="stat-card" style="background: var(--success);">EMBARCADOS<br><span id="txt-count-ok" style="font-size: 1.5rem;">0</span></div>
+        <div class="stat-card" style="background: #ef4444;">RESTANTES<br><span id="txt-count-pending" style="font-size: 1.5rem;">0</span></div>
     </div>
 
     <div class="card">
-        <h2 id="titulo-viagem" style="margin-top:0; margin-bottom:10px;"></h2>
+        <h2 id="titulo-viagem" style="margin:0 0 15px 0; text-align: center; color: var(--primary);"></h2>
         
-        <div id="div-caruaru" style="display:none; margin-bottom:15px;">
-            <label style="font-size: 12px; font-weight: bold; color: #666;">PASSAGEIROS DE CARUARU (TRÂNSITO):</label>
-            <input type="number" id="input-caruaru" class="input-small" placeholder="Ex: 15" onchange="salvarCaruaru()">
+        <div id="div-caruaru" style="display:none; margin-bottom:20px; border-top: 1px solid #eee; padding-top: 15px;">
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-sub); display: block; text-align: center; margin-bottom: 5px;">PASSAGEIROS EM TRÂNSITO (CARUARU):</label>
+            <input type="number" id="input-caruaru" placeholder="0" onchange="salvarCaruaru()">
         </div>
         
-        <div id="reader" style="margin-top:15px;"></div>
-        <button class="btn btn-qr" onclick="toggleScanner()">📷 ESCANEAR QR CODE</button>
-        <button class="btn btn-blue" onclick="document.getElementById('file-input').click()">📥 CARREGAR PDF (SUP./INF.)</button>
-        <button class="btn btn-red" onclick="limparLista()">🗑️ LIMPAR TUDO DESTA VIAGEM</button>
+        <div id="reader"></div>
+        
+        <button class="btn btn-qr" onclick="toggleScanner()">📷 LER QR CODE</button>
+        <button class="btn btn-blue" onclick="document.getElementById('file-input').click()">📥 IMPORTAR PDF (PISOS)</button>
+        <button class="btn btn-red" onclick="limparLista()">🗑️ Limpar passageiros</button>
         
         <input type="file" id="file-input" accept="application/pdf" style="display:none">
-        <div id="loader">⚙️ PROCESSANDO... AGUARDE.</div>
+        <div id="loader">PROCESSANDO MAPA...</div>
     </div>
 
     <div id="passageiros-lista"></div>
-    <div id="acoes-lista" style="display:none">
-        <button class="btn btn-whatsapp" onclick="enviarWhatsApp()">📱 RESUMO WHATSAPP</button>
+    
+    <div id="acoes-lista" style="display:none; margin-top: 20px;">
+        <button class="btn btn-whatsapp" onclick="enviarWhatsApp()">📱 ENVIAR RESUMO WHATSAPP</button>
     </div>
 </div>
 
@@ -104,7 +242,7 @@
     function adicionarViagem() {
         const h = document.getElementById('input-hora').value;
         const d = document.getElementById('input-destino').value;
-        if(!h || !d) return alert("Preencha os dados!");
+        if(!h || !d) return alert("Preencha hora e destino!");
         db.ref('viagens').push({ hora: h, destino: d, passageiros: {}, caruaru: 0 });
     }
 
@@ -114,15 +252,14 @@
     }
 
     function limparLista() {
-        if (!atualViagemKey) return;
-        if (confirm("Isso apagará todos os passageiros dos dois pisos. Confirmar?")) {
+        if (confirm("Deseja apagar todos os passageiros desta lista?")) {
             db.ref(`viagens/${atualViagemKey}/passageiros`).remove();
         }
     }
 
     function excluirViagem(key, event) {
         event.stopPropagation();
-        if(confirm("Excluir este horário?")) db.ref('viagens/' + key).remove();
+        if(confirm("Excluir esta viagem permanentemente?")) db.ref('viagens/' + key).remove();
     }
 
     function renderMenu(data) {
@@ -133,9 +270,14 @@
             const pCount = v.passageiros ? Object.keys(v.passageiros).length : 0;
             const div = document.createElement('div');
             div.className = 'card';
+            div.style.cursor = 'pointer';
             div.onclick = () => abrirViagem(key, v);
-            div.innerHTML = `<button class="btn-delete-viagem" onclick="excluirViagem('${key}', event)">🗑️</button>
-                <strong>${v.hora} - ${v.destino}</strong><br><small>${pCount} passageiros</small>`;
+            div.innerHTML = `<button class="btn-delete-viagem" onclick="excluirViagem('${key}', event)">Excluir</button>
+                <div style="text-align:center">
+                    <span style="font-size:1.2rem; font-weight:700; color:var(--primary)">${v.hora}</span><br>
+                    <span style="color:var(--text-sub); font-weight:600">${v.destino}</span><br>
+                    <span style="display:inline-block; margin-top:8px; padding:4px 12px; background:#f1f5f9; border-radius:20px; font-size:12px; font-weight:700">${pCount} Pax Recife</span>
+                </div>`;
             c.appendChild(div);
         }
     }
@@ -171,8 +313,13 @@
             const div = document.createElement('div');
             div.className = `p-row ${p.ok ? 'ok' : ''} ${p.caxanga ? 'caxanga' : ''}`;
             div.onclick = () => db.ref(`viagens/${atualViagemKey}/passageiros/${p.bilhete}`).update({ok: !p.ok});
-            div.innerHTML = `<input type="checkbox" ${p.ok ? 'checked' : ''} style="width:20px; height:20px;">
-                <div style="margin-left:12px; flex-grow:1;"><strong>${p.polt} - ${p.nome} ${p.caxanga ? '🔶' : ''}</strong><br><small>Polt: ${p.polt} | Bilhete: ${p.bilhete}</small></div>`;
+            div.innerHTML = `
+                <div class="polt-badge">${p.polt}</div>
+                <div style="flex-grow:1;">
+                    <div style="font-weight:700; font-size:14px;">${p.nome} ${p.caxanga ? '🔶' : ''}</div>
+                    <div style="font-size:11px; color:var(--text-sub)">BILHETE: ${p.bilhete}</div>
+                </div>
+                <div style="color: ${p.ok ? 'var(--success)' : '#e2e8f0'}">✔</div>`;
             l.appendChild(div);
         });
     }
@@ -181,58 +328,42 @@
         const file = e.target.files[0];
         if(!file || !atualViagemKey) return;
         document.getElementById('loader').style.display = 'block';
-        
         const reader = new FileReader();
         reader.onload = async function() {
             try {
                 const pdfjsLib = window['pdfjs-dist/build/pdf'];
                 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
                 const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
-                
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
-                    const text = await page.getTextContent();
-                    
-                    // Agrupamento por linhas baseado na altura Y (tolerância de 5px)
-                    let items = text.items.map(it => ({ str: it.str, x: it.transform[4], y: Math.round(it.transform[5]) }));
+                    const textContent = await page.getTextContent();
+                    let items = textContent.items.map(it => ({ str: it.str, x: it.transform[4], y: Math.round(it.transform[5]) }));
                     let rows = [];
                     items.forEach(item => {
                         let row = rows.find(r => Math.abs(r.y - item.y) < 5);
                         if (row) row.items.push(item); else rows.push({ y: item.y, items: [item] });
                     });
                     rows.sort((a, b) => b.y - a.y);
-                    
                     for (let rIdx = 0; rIdx < rows.length; rIdx++) {
                         let currentLine = rows[rIdx].items.sort((a,b) => a.x - b.x).map(it => it.str).join(" ").toUpperCase();
-                        
-                        // Busca o número da poltrona no início da linha
                         let poltMatch = currentLine.trim().match(/^(\d{1,2})\b/);
                         if (poltMatch) {
                             let polt = poltMatch[1];
-                            // Pega o texto da linha atual e da próxima para garantir que pegamos o destino e bilhete
                             let nextLine = rows[rIdx + 1] ? rows[rIdx + 1].items.map(it => it.str).join(" ").toUpperCase() : "";
                             let combinedText = currentLine + " " + nextLine;
-                            
                             if (combinedText.includes("RECIFE") || combinedText.includes("CAXANGA")) {
                                 let bMatch = combinedText.match(/\b(\d{6})\b/);
-                                let bilhete = bMatch ? bMatch[1] : "S/B-" + polt;
+                                let bilhete = bMatch ? bMatch[1] : "SB-" + polt + "-" + Math.floor(Math.random()*1000);
                                 let isCaxanga = combinedText.includes("CAXANGA");
-                                
-                                // Limpa o nome removendo números e destinos
-                                let nome = currentLine.replace(/^\d{1,2}/, '')
-                                            .split("RECIFE")[0].split("CAXANGA")[0]
-                                            .replace(/\d+/g, '').replace(/\(.*\)/g, '').trim();
-
-                                await db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}`).update({
-                                    polt: polt, nome: nome, bilhete: bilhete, caxanga: isCaxanga
-                                });
+                                let nome = currentLine.replace(/^\d{1,2}/, '').split("RECIFE")[0].split("CAXANGA")[0].replace(/\d+/g, '').replace(/\(.*\)/g, '').trim();
+                                await db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}`).update({ polt: polt, nome: nome, bilhete: bilhete, caxanga: isCaxanga });
                                 await db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}/ok`).transaction(v => v === null ? false : v);
                             }
                         }
                     }
                 }
-                alert("PDF Processado! Pode carregar o outro piso se desejar.");
-            } catch (err) { alert("Erro: " + err.message); }
+                alert("Mapa importado com sucesso!");
+            } catch (err) { alert("Erro ao ler PDF: " + err.message); }
             finally { document.getElementById('loader').style.display = 'none'; e.target.value = ""; }
         };
         reader.readAsArrayBuffer(file);
@@ -257,8 +388,8 @@
             const recifeOk = pax.filter(p => p.ok).length;
             const eHorarioCaruaru = (v.hora === "19:05");
             const totalGeral = eHorarioCaruaru ? (caruaru + recifeOk) : recifeOk;
-            const faltas = pax.filter(p => !p.ok).map(p => p.polt);
-            const caxangaRec = pax.filter(p => p.ok && p.caxanga).map(p => p.polt);
+            const faltas = pax.filter(p => !p.ok).map(p => p.polt).sort((a,b)=>a-b);
+            const caxangaRec = pax.filter(p => p.ok && p.caxanga).map(p => p.polt).sort((a,b)=>a-b);
             const agora = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
             let msg = `*RESUMO DE EMBARQUE*\n\n🕒 *Horário:* ${v.hora}\n🏁 *Saída:* ${agora}\n\n📊 *TOTAL GERAL:* ${totalGeral}\n`;
             if (eHorarioCaruaru) msg += `↳ Caruaru: ${caruaru}\n↳ Recife: ${recifeOk}\n\n`;
