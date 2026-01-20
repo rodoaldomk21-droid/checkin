@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guanabara Check-in PRO (Multi-PDF)</title>
+    <title>Guanabara Check-in PRO (DD Multilistas)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
@@ -62,8 +62,8 @@
         
         <div id="reader" style="margin-top:15px;"></div>
         <button class="btn btn-qr" onclick="toggleScanner()">📷 ESCANEAR QR CODE</button>
-        <button class="btn btn-blue" onclick="document.getElementById('file-input').click()">📥 CARREGAR PDF (SUPERIOR/INFERIOR)</button>
-        <button class="btn btn-red" onclick="limparLista()">🗑️ LIMPAR PASSAGEIROS</button>
+        <button class="btn btn-blue" onclick="document.getElementById('file-input').click()">📥 CARREGAR PDF (SUP./INF.)</button>
+        <button class="btn btn-red" onclick="limparLista()">🗑️ LIMPAR TUDO DESTA VIAGEM</button>
         
         <input type="file" id="file-input" accept="application/pdf" style="display:none">
         <div id="loader">⚙️ PROCESSANDO... AGUARDE.</div>
@@ -115,14 +115,14 @@
 
     function limparLista() {
         if (!atualViagemKey) return;
-        if (confirm("Deseja apagar TODOS os passageiros carregados nesta viagem?")) {
+        if (confirm("Isso apagará todos os passageiros dos dois pisos. Confirmar?")) {
             db.ref(`viagens/${atualViagemKey}/passageiros`).remove();
         }
     }
 
     function excluirViagem(key, event) {
         event.stopPropagation();
-        if(confirm("Deseja excluir este horário?")) db.ref('viagens/' + key).remove();
+        if(confirm("Excluir este horário?")) db.ref('viagens/' + key).remove();
     }
 
     function renderMenu(data) {
@@ -172,12 +172,11 @@
             div.className = `p-row ${p.ok ? 'ok' : ''} ${p.caxanga ? 'caxanga' : ''}`;
             div.onclick = () => db.ref(`viagens/${atualViagemKey}/passageiros/${p.bilhete}`).update({ok: !p.ok});
             div.innerHTML = `<input type="checkbox" ${p.ok ? 'checked' : ''} style="width:20px; height:20px;">
-                <div style="margin-left:12px; flex-grow:1;"><strong>${p.polt} - ${p.nome} ${p.caxanga ? '🔶' : ''}</strong><br><small>Bilhete: ${p.bilhete}</small></div>`;
+                <div style="margin-left:12px; flex-grow:1;"><strong>${p.polt} - ${p.nome} ${p.caxanga ? '🔶' : ''}</strong><br><small>Polt: ${p.polt} | Bilhete: ${p.bilhete}</small></div>`;
             l.appendChild(div);
         });
     }
 
-    // LÓGICA PARA CARREGAR MÚLTIPLOS PDFS (SOMA OS DADOS)
     document.getElementById('file-input').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if(!file || !atualViagemKey) return;
@@ -193,6 +192,8 @@
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
                     const text = await page.getTextContent();
+                    
+                    // Agrupamento por linhas baseado na altura Y (tolerância de 5px)
                     let items = text.items.map(it => ({ str: it.str, x: it.transform[4], y: Math.round(it.transform[5]) }));
                     let rows = [];
                     items.forEach(item => {
@@ -203,29 +204,34 @@
                     
                     for (let rIdx = 0; rIdx < rows.length; rIdx++) {
                         let currentLine = rows[rIdx].items.sort((a,b) => a.x - b.x).map(it => it.str).join(" ").toUpperCase();
-                        if (/^\d{1,2}\s/.test(currentLine.trim())) {
+                        
+                        // Busca o número da poltrona no início da linha
+                        let poltMatch = currentLine.trim().match(/^(\d{1,2})\b/);
+                        if (poltMatch) {
+                            let polt = poltMatch[1];
+                            // Pega o texto da linha atual e da próxima para garantir que pegamos o destino e bilhete
                             let nextLine = rows[rIdx + 1] ? rows[rIdx + 1].items.map(it => it.str).join(" ").toUpperCase() : "";
-                            let fullText = currentLine + " " + nextLine;
-                            if (fullText.includes("RECIFE") || fullText.includes("CAXANGA")) {
-                                let polt = currentLine.trim().match(/^(\d{1,2})/)[1];
-                                let bMatch = fullText.match(/\b\d{6}\b/g);
-                                let bilhete = bMatch ? bMatch[bMatch.length - 1] : "N/A";
-                                let isCaxanga = fullText.includes("CAXANGA");
-                                let nome = currentLine.replace(/^\d{1,2}/, '').split("RECIFE")[0].split("CAXANGA")[0].replace(/\d{7,}/g, '').trim();
+                            let combinedText = currentLine + " " + nextLine;
+                            
+                            if (combinedText.includes("RECIFE") || combinedText.includes("CAXANGA")) {
+                                let bMatch = combinedText.match(/\b(\d{6})\b/);
+                                let bilhete = bMatch ? bMatch[1] : "S/B-" + polt;
+                                let isCaxanga = combinedText.includes("CAXANGA");
+                                
+                                // Limpa o nome removendo números e destinos
+                                let nome = currentLine.replace(/^\d{1,2}/, '')
+                                            .split("RECIFE")[0].split("CAXANGA")[0]
+                                            .replace(/\d+/g, '').replace(/\(.*\)/g, '').trim();
 
-                                if (bilhete !== "N/A") {
-                                    // Adiciona ou Atualiza sem apagar os outros
-                                    await db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}`).update({
-                                        polt: polt, nome: nome, bilhete: bilhete, caxanga: isCaxanga
-                                    });
-                                    // Garante que o status 'ok' não seja resetado se já foi bipado
-                                    await db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}/ok`).transaction(v => v === null ? false : v);
-                                }
+                                await db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}`).update({
+                                    polt: polt, nome: nome, bilhete: bilhete, caxanga: isCaxanga
+                                });
+                                await db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}/ok`).transaction(v => v === null ? false : v);
                             }
                         }
                     }
                 }
-                alert("PDF Processado! Você pode carregar o segundo piso agora se necessário.");
+                alert("PDF Processado! Pode carregar o outro piso se desejar.");
             } catch (err) { alert("Erro: " + err.message); }
             finally { document.getElementById('loader').style.display = 'none'; e.target.value = ""; }
         };
