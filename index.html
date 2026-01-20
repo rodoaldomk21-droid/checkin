@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guanabara Check-in PRO</title>
+    <title>Guanabara Check-in PRO (DD Suporte)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
@@ -14,7 +14,7 @@
         header { background: var(--blue); color: white; padding: 15px; text-align: center; font-weight: bold; }
         .container { max-width: 500px; margin: auto; padding: 15px; }
         .card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; position: relative; }
-        .btn { border: none; padding: 16px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; color: white; font-size: 16px; margin-top: 10px; display: block; text-align: center; text-decoration: none; }
+        .btn { border: none; padding: 16px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; color: white; font-size: 16px; margin-top: 10px; display: block; text-align: center; text-decoration: none; border: none; }
         .btn-blue { background: var(--blue); }
         .btn-qr { background: #6b21a8; }
         .btn-whatsapp { background: var(--wsapp); }
@@ -32,7 +32,7 @@
 </head>
 <body>
 
-<header>GUANABARA - RECIFE</header>
+<header>GUANABARA - RECIFE (DD)</header>
 
 <div id="view-menu" class="container">
     <div class="card">
@@ -62,11 +62,11 @@
         
         <div id="reader" style="margin-top:15px;"></div>
         <button class="btn btn-qr" onclick="toggleScanner()">📷 ESCANEAR QR CODE</button>
-        <button class="btn btn-blue" onclick="document.getElementById('file-input').click()">📥 CARREGAR PDF</button>
+        <button class="btn btn-blue" id="btn-carregar-pdf">📥 CARREGAR PDF (DD)</button>
         <button class="btn btn-red" onclick="limparLista()">🗑️ LIMPAR PASSAGEIROS</button>
         
         <input type="file" id="file-input" accept="application/pdf" style="display:none">
-        <div id="loader">⚙️ PROCESSANDO PDF... AGUARDE.</div>
+        <div id="loader">⚙️ LENDO AMBOS OS PISOS... AGUARDE.</div>
     </div>
 
     <div id="passageiros-lista"></div>
@@ -76,7 +76,6 @@
 </div>
 
 <script>
-    // Configuração Firebase
     const firebaseConfig = {
         apiKey: "AIzaSyAnjkMAQbs9h2cZNfl0SVhgcdix1A0laL0",
         authDomain: "guanabara-checkin.firebaseapp.com",
@@ -93,7 +92,11 @@
     let html5QrCode = null;
     const audioBip = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
 
-    // Escutar mudanças no Banco de Dados
+    // Inicialização do botão PDF
+    document.getElementById('btn-carregar-pdf').addEventListener('click', () => {
+        document.getElementById('file-input').click();
+    });
+
     db.ref('viagens').on('value', (snapshot) => {
         const data = snapshot.val();
         renderMenu(data);
@@ -117,10 +120,8 @@
 
     function limparLista() {
         if (!atualViagemKey) return;
-        if (confirm("Deseja apagar TODOS os passageiros desta lista?")) {
-            db.ref(`viagens/${atualViagemKey}/passageiros`).remove()
-                .then(() => alert("Lista removida!"))
-                .catch((e) => alert("Erro: " + e.message));
+        if (confirm("Deseja apagar TODOS os passageiros?")) {
+            db.ref(`viagens/${atualViagemKey}/passageiros`).remove();
         }
     }
 
@@ -139,7 +140,7 @@
             div.className = 'card';
             div.onclick = () => abrirViagem(key, v);
             div.innerHTML = `<button class="btn-delete-viagem" onclick="excluirViagem('${key}', event)">🗑️</button>
-                <strong>${v.hora} - ${v.destino}</strong><br><small>${pCount} pax Recife</small>`;
+                <strong>${v.hora} - ${v.destino}</strong><br><small>${pCount} pax carregados</small>`;
             c.appendChild(div);
         }
     }
@@ -154,9 +155,7 @@
     }
 
     function irParaMenu() {
-        if(html5QrCode) {
-            html5QrCode.stop().catch(err => console.log(err));
-        }
+        if(html5QrCode) html5QrCode.stop().catch(() => {});
         atualViagemKey = null;
         document.getElementById('view-menu').style.display = 'block';
         document.getElementById('view-lista').style.display = 'none';
@@ -167,40 +166,27 @@
         const txtOk = document.getElementById('txt-count-ok');
         const txtPending = document.getElementById('txt-count-pending');
         l.innerHTML = "";
-        
-        if(!v.passageiros || Object.keys(v.passageiros).length === 0) {
-            txtOk.innerText = "0";
-            txtPending.innerText = "0";
-            document.getElementById('acoes-lista').style.display = "none";
-            return;
-        }
-
+        if(!v.passageiros) { txtOk.innerText="0"; txtPending.innerText="0"; return; }
         const paxArray = Object.values(v.passageiros).sort((a,b) => parseInt(a.polt) - parseInt(b.polt));
-        const okCount = paxArray.filter(p => p.ok).length;
-        txtOk.innerText = okCount;
-        txtPending.innerText = paxArray.length - okCount;
+        txtOk.innerText = paxArray.filter(p => p.ok).length;
+        txtPending.innerText = paxArray.length - parseInt(txtOk.innerText);
         document.getElementById('acoes-lista').style.display = "block";
-
         paxArray.forEach(p => {
             const div = document.createElement('div');
             div.className = `p-row ${p.ok ? 'ok' : ''} ${p.caxanga ? 'caxanga' : ''}`;
             div.onclick = () => db.ref(`viagens/${atualViagemKey}/passageiros/${p.bilhete}`).update({ok: !p.ok});
-            div.innerHTML = `<input type="checkbox" ${p.ok ? 'checked' : ''} style="width:22px; height:22px;">
-                <div style="margin-left:12px; flex-grow:1;"><strong>${p.polt} - ${p.nome} ${p.caxanga ? '🔶 (CAXANGÁ)' : ''}</strong><br><small>BILHETE: ${p.bilhete}</small></div>`;
+            div.innerHTML = `<input type="checkbox" ${p.ok ? 'checked' : ''} style="width:20px; height:20px;">
+                <div style="margin-left:12px; flex-grow:1;"><strong>${p.polt} - ${p.nome} ${p.caxanga ? '🔶' : ''}</strong><br><small>${p.bilhete}</small></div>`;
             l.appendChild(div);
         });
     }
 
-    // --- LÓGICA DE PDF COM AGRUPAMENTO E LIMPEZA AUTOMÁTICA ---
+    // --- LÓGICA DE PDF PARA CARROS DD (DOIS MAPAS) ---
     document.getElementById('file-input').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if(!file || !atualViagemKey) return;
-        
         document.getElementById('loader').style.display = 'block';
         
-        // Limpa a lista antes de carregar o novo PDF
-        await db.ref(`viagens/${atualViagemKey}/passageiros`).remove();
-
         const reader = new FileReader();
         reader.onload = async function() {
             try {
@@ -208,43 +194,35 @@
                 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
                 const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
                 
+                // Limpa antes de carregar
+                await db.ref(`viagens/${atualViagemKey}/passageiros`).remove();
+
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
                     const text = await page.getTextContent();
                     
-                    let items = text.items.map(it => ({
-                        str: it.str,
-                        x: it.transform[4],
-                        y: Math.round(it.transform[5])
-                    }));
-                    
+                    let items = text.items.map(it => ({ str: it.str, x: it.transform[4], y: Math.round(it.transform[5]) }));
                     let rows = [];
                     items.forEach(item => {
                         let row = rows.find(r => Math.abs(r.y - item.y) < 5);
-                        if (row) row.items.push(item);
-                        else rows.push({ y: item.y, items: [item] });
+                        if (row) row.items.push(item); else rows.push({ y: item.y, items: [item] });
                     });
                     rows.sort((a, b) => b.y - a.y);
                     
                     for (let rIdx = 0; rIdx < rows.length; rIdx++) {
                         let currentLine = rows[rIdx].items.sort((a,b) => a.x - b.x).map(it => it.str).join(" ").toUpperCase();
                         
-                        // Detecta se a linha começa com número da poltrona
+                        // Captura poltronas (mesmo em tabelas diferentes)
                         if (/^\d{1,2}\s/.test(currentLine.trim())) {
                             let nextLine = rows[rIdx + 1] ? rows[rIdx + 1].items.map(it => it.str).join(" ").toUpperCase() : "";
-                            let fullText = currentLine + " " + nextLine;
+                            let combinedText = currentLine + " " + nextLine;
                             
-                            if (fullText.includes("RECIFE") || fullText.includes("CAXANGA")) {
+                            if (combinedText.includes("RECIFE") || combinedText.includes("CAXANGA")) {
                                 let polt = currentLine.trim().match(/^(\d{1,2})/)[1];
-                                let bilheteMatch = fullText.match(/\b\d{6}\b/g);
-                                let bilhete = bilheteMatch ? bilheteMatch[bilheteMatch.length - 1] : "N/A";
-                                let isCaxanga = fullText.includes("CAXANGA");
-                                
-                                let nome = currentLine.replace(/^\d{1,2}/, '')
-                                            .split("RECIFE")[0].split("CAXANGA")[0]
-                                            .replace(/\d{7,}/g, '')
-                                            .replace(/\(.*\)/g, '')
-                                            .trim();
+                                let bMatch = combinedText.match(/\b\d{6}\b/g);
+                                let bilhete = bMatch ? bMatch[bMatch.length - 1] : "N/A";
+                                let isCaxanga = combinedText.includes("CAXANGA");
+                                let nome = currentLine.replace(/^\d{1,2}/, '').split("RECIFE")[0].split("CAXANGA")[0].replace(/\d{7,}/g, '').trim();
 
                                 if (bilhete !== "N/A") {
                                     await db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}`).update({
@@ -255,33 +233,22 @@
                         }
                     }
                 }
-                alert("Passageiros carregados!");
-            } catch (err) { 
-                alert("Erro ao processar: " + err.message); 
-            } finally { 
-                document.getElementById('loader').style.display = 'none';
-                e.target.value = ""; 
-            }
+                alert("Pisos Superior e Inferior carregados com sucesso!");
+            } catch (err) { alert("Erro: " + err.message); }
+            finally { document.getElementById('loader').style.display = 'none'; e.target.value = ""; }
         };
         reader.readAsArrayBuffer(file);
     });
 
     async function toggleScanner() {
         const r = document.getElementById('reader');
-        if(html5QrCode && html5QrCode.isScanning) { 
-            await html5QrCode.stop(); 
-            r.style.display = 'none'; 
-            return; 
-        }
+        if(html5QrCode && html5QrCode.isScanning) { await html5QrCode.stop(); r.style.display = 'none'; return; }
         r.style.display = 'block';
         html5QrCode = new Html5Qrcode("reader");
         html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (text) => {
             const match = text.match(/(\d{6})[A-Z]{2}/);
-            if(match) { 
-                db.ref(`viagens/${atualViagemKey}/passageiros/${match[1]}`).update({ok: true}); 
-                audioBip.play(); 
-            }
-        }).catch(err => alert("Erro câmera: " + err));
+            if(match) { db.ref(`viagens/${atualViagemKey}/passageiros/${match[1]}`).update({ok: true}); audioBip.play(); }
+        });
     }
 
     function enviarWhatsApp() {
@@ -295,17 +262,10 @@
             const faltas = pax.filter(p => !p.ok).map(p => p.polt);
             const caxangaRec = pax.filter(p => p.ok && p.caxanga).map(p => p.polt);
             const agora = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-            
-            let msg = `*RESUMO DE EMBARQUE*\n\n🕒 *Horário:* ${v.hora}\n🏁 *Saída:* ${agora}\n\n`;
-            msg += `📊 *TOTAL GERAL:* ${totalGeral}\n`;
-            if (eHorarioCaruaru) {
-                msg += `↳ Caruaru (Em trânsito): ${caruaru}\n↳ Recife: ${recifeOk}\n\n`;
-            } else {
-                msg += `↳ Recife: ${recifeOk}\n\n`;
-            }
-            if(caxangaRec.length > 0) {
-                msg += `🔶 *EMBARQUE CAXANGÁ:* ${caxangaRec.length} pax\n↳ Polt: ${caxangaRec.join(", ")}\n\n`;
-            }
+            let msg = `*RESUMO DE EMBARQUE*\n\n🕒 *Horário:* ${v.hora}\n🏁 *Saída:* ${agora}\n\n📊 *TOTAL GERAL:* ${totalGeral}\n`;
+            if (eHorarioCaruaru) msg += `↳ Caruaru: ${caruaru}\n↳ Recife: ${recifeOk}\n\n`;
+            else msg += `↳ Recife: ${recifeOk}\n\n`;
+            if(caxangaRec.length > 0) msg += `🔶 *EMBARQUE CAXANGÁ:* ${caxangaRec.length}\n↳ Polt: ${caxangaRec.join(", ")}\n\n`;
             msg += `❌ *FALTAM (RECIFE):* ${faltas.length}\n`;
             if(faltas.length > 0) msg += `↳ Polt: ${faltas.join(", ")}\n\n`;
             msg += `🛰️ *MONOTRIP:* OK`;
@@ -315,3 +275,4 @@
 </script>
 </body>
 </html>
+
