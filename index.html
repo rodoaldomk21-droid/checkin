@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guanabara Check-in</title>
+    <title>Guanabara Check-in PRO</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,199 +17,121 @@
     <style>
         :root {
             --primary: #002d5e;
-            --accent: #ed1c24;
             --success: #10b981;
-            --pending: #f59e0b;
             --bg: #f8fafc;
             --card: #ffffff;
             --text-main: #1e293b;
             --text-sub: #64748b;
         }
 
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background: var(--bg); 
-            margin: 0; 
-            color: var(--text-main);
-            -webkit-font-smoothing: antialiased;
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: var(--text-main); }
+        
+        /* Tela de Login */
+        #view-login { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            height: 100vh; background: var(--primary); color: white; padding: 20px; text-align: center;
         }
 
         header { 
-            background: var(--primary); 
-            color: white; 
-            padding: 20px 15px; 
-            text-align: center; 
-            font-weight: 700;
-            font-size: 1.2rem;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            background: var(--primary); color: white; padding: 15px; 
+            text-align: center; font-weight: 700; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
-        .container { 
-            max-width: 480px; 
-            margin: auto; 
-            padding: 20px; 
-        }
+        .container { max-width: 480px; margin: auto; padding: 15px; }
 
         .card { 
-            background: var(--card); 
-            border-radius: 16px; 
-            padding: 24px; 
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); 
-            margin-bottom: 20px;
-            border: 1px solid #f1f5f9;
+            background: var(--card); border-radius: 16px; padding: 20px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; border: 1px solid #f1f5f9; position: relative;
         }
 
-        h3 { margin-top: 0; font-weight: 700; color: var(--primary); text-align: center; }
-
-        input[type="time"], input[type="text"], input[type="number"] {
-            width: 100%;
-            padding: 14px;
-            margin-bottom: 12px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-family: inherit;
-            font-size: 16px;
-            box-sizing: border-box;
-            text-align: center;
-            transition: border-color 0.2s;
+        input {
+            width: 100%; padding: 14px; margin-bottom: 10px; border: 2px solid #e2e8f0;
+            border-radius: 12px; font-size: 16px; box-sizing: border-box; text-align: center;
         }
-
-        input:focus { border-color: var(--primary); outline: none; }
 
         .btn { 
-            border: none; 
-            padding: 16px; 
-            border-radius: 12px; 
-            font-weight: 600; 
-            cursor: pointer; 
-            width: 100%; 
-            color: white; 
-            font-size: 15px; 
-            margin-top: 10px; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: opacity 0.2s;
+            border: none; padding: 16px; border-radius: 12px; font-weight: 600; 
+            cursor: pointer; width: 100%; color: white; display: flex; align-items: center; justify-content: center; gap: 8px;
         }
-
-        .btn:active { opacity: 0.8; }
         .btn-blue { background: var(--primary); }
         .btn-qr { background: #7c3aed; }
         .btn-whatsapp { background: #25d366; }
-        .btn-red { background: #fee2e2; color: #dc2626; font-size: 14px; }
+        .btn-red { background: #fee2e2; color: #dc2626; font-size: 13px; margin-top: 5px; }
 
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-        .stat-card { 
-            padding: 15px; 
-            border-radius: 14px; 
-            text-align: center; 
-            color: white; 
-            font-size: 0.85rem;
-            font-weight: 700;
-        }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .stat-card { padding: 12px; border-radius: 12px; text-align: center; color: white; font-weight: 700; }
 
         .p-row { 
-            display: flex; 
-            align-items: center; 
-            padding: 16px; 
-            background: white; 
-            border-radius: 12px;
-            margin-bottom: 8px;
-            cursor: pointer; 
-            border: 1px solid #e2e8f0;
-            transition: all 0.2s;
+            display: flex; align-items: center; padding: 14px; background: white; 
+            border-radius: 12px; margin-bottom: 8px; border: 1px solid #e2e8f0; transition: 0.2s;
         }
-
-        .p-row.ok { 
-            background: #f0fdf4; 
-            border-color: var(--success);
-        }
-
-        .p-row.caxanga { 
-            border-right: 8px solid #f59e0b;
-        }
+        .p-row.ok { background: #f0fdf4; border-color: var(--success); }
+        .p-row.caxanga { border-right: 6px solid #f59e0b; }
 
         .polt-badge {
-            background: #f1f5f9;
-            color: var(--primary);
-            width: 35px;
-            height: 35px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            font-weight: 700;
-            margin-right: 15px;
+            background: #f1f5f9; color: var(--primary); width: 35px; height: 35px;
+            display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 700; margin-right: 12px;
         }
-
         .p-row.ok .polt-badge { background: var(--success); color: white; }
 
-        #reader { width: 100%; border-radius: 16px; overflow: hidden; margin-bottom: 15px; background: #000; display: none; }
+        #reader { width: 100%; border-radius: 16px; overflow: hidden; margin-bottom: 15px; display: none; }
+        #loader { display:none; text-align:center; padding: 10px; color: var(--primary); font-weight: 600; }
         
-        #loader { 
-            display:none; 
-            text-align:center; 
-            padding: 20px; 
-            color: var(--primary); 
-            font-weight: 600; 
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-
-        .btn-delete-viagem { 
-            position: absolute; top: 15px; right: 15px; 
-            background: #fff; border: 1px solid #fee2e2; 
-            padding: 5px 10px; border-radius: 8px; color: #ef4444; 
-        }
+        .user-tag { font-size: 11px; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px; margin-top: 5px; display: inline-block; }
     </style>
 </head>
 <body>
 
-<header>GUANABARA RECIFE</header>
-
-<div id="view-menu" class="container">
-    <div class="card">
-        <h3>Nova Viagem</h3>
-        <input type="time" id="input-hora">
-        <input type="text" id="input-destino" placeholder="Destino Final">
-        <button class="btn btn-blue" onclick="adicionarViagem()">CRIAR LISTA DE EMBARQUE</button>
-    </div>
-    <div id="lista-viagens-container"></div>
+<div id="view-login">
+    <h1 style="margin-bottom: 5px;">Guanabara</h1>
+    <p style="margin-bottom: 30px; opacity: 0.8;">Sistema de Check-in Recife</p>
+    <input type="text" id="login-nome" placeholder="Seu Nome ou ID" style="background: white; color: black;">
+    <button class="btn btn-blue" onclick="fazerLogin()" style="background: #ffffff; color: var(--primary);">ENTRAR NO SISTEMA</button>
 </div>
 
-<div id="view-lista" class="container" style="display:none">
-    <button onclick="irParaMenu()" style="background:none; border:none; color:var(--text-sub); font-weight:600; margin-bottom:15px; cursor:pointer; display: flex; align-items: center; gap: 5px;">← Voltar ao Menu</button>
-    
-    <div class="stats-grid">
-        <div class="stat-card" style="background: var(--success);">EMBARCADOS<br><span id="txt-count-ok" style="font-size: 1.5rem;">0</span></div>
-        <div class="stat-card" style="background: #ef4444;">RESTANTES<br><span id="txt-count-pending" style="font-size: 1.5rem;">0</span></div>
-    </div>
+<div id="app-content" style="display: none;">
+    <header>
+        GUANABARA RECIFE
+        <br><span id="display-user" class="user-tag"></span>
+    </header>
 
-    <div class="card">
-        <h2 id="titulo-viagem" style="margin:0 0 15px 0; text-align: center; color: var(--primary);"></h2>
-        
-        <div id="div-caruaru" style="display:none; margin-bottom:20px; border-top: 1px solid #eee; padding-top: 15px;">
-            <label style="font-size: 11px; font-weight: 700; color: var(--text-sub); display: block; text-align: center; margin-bottom: 5px;">PASSAGEIROS EM TRÂNSITO (CARUARU):</label>
-            <input type="number" id="input-caruaru" placeholder="0" onchange="salvarCaruaru()">
+    <div id="view-menu" class="container">
+        <div class="card">
+            <h3 style="text-align: center; margin-top: 0;">Nova Viagem</h3>
+            <input type="time" id="input-hora">
+            <input type="text" id="input-destino" placeholder="Destino Final">
+            <button class="btn btn-blue" onclick="adicionarViagem()">CRIAR LISTA</button>
         </div>
-        
-        <div id="reader"></div>
-        
-        <button class="btn btn-qr" onclick="toggleScanner()">📷 LER QR CODE</button>
-        <button class="btn btn-blue" onclick="document.getElementById('file-input').click()">📥 IMPORTAR PDF (PISOS)</button>
-        <button class="btn btn-red" onclick="limparLista()">🗑️ Limpar passageiros</button>
-        
-        <input type="file" id="file-input" accept="application/pdf" style="display:none">
-        <div id="loader">PROCESSANDO MAPA...</div>
+        <div id="lista-viagens-container"></div>
     </div>
 
-    <div id="passageiros-lista"></div>
-    
-    <div id="acoes-lista" style="display:none; margin-top: 20px;">
-        <button class="btn btn-whatsapp" onclick="enviarWhatsApp()">📱 ENVIAR RESUMO WHATSAPP</button>
+    <div id="view-lista" class="container" style="display:none">
+        <button onclick="irParaMenu()" style="background:none; border:none; color:var(--text-sub); font-weight:600; margin-bottom:15px; cursor:pointer;">← Voltar</button>
+        
+        <div class="stats-grid">
+            <div class="stat-card" style="background: var(--success);">EMBARCADOS<br><span id="txt-count-ok">0</span></div>
+            <div class="stat-card" style="background: #ef4444;">RESTANTES<br><span id="txt-count-pending">0</span></div>
+        </div>
+
+        <div class="card">
+            <h2 id="titulo-viagem" style="margin:0 0 15px 0; text-align: center; color: var(--primary); font-size: 1.2rem;"></h2>
+            
+            <div id="div-caruaru" style="display:none; margin-bottom:15px;">
+                <input type="number" id="input-caruaru" placeholder="Pax Caruaru" onchange="salvarCaruaru()">
+            </div>
+            
+            <div id="reader"></div>
+            <button class="btn btn-qr" onclick="toggleScanner()" style="margin-bottom:8px;">📷 LER QR CODE</button>
+            <button class="btn btn-blue" onclick="document.getElementById('file-input').click()">📥 IMPORTAR PDF</button>
+            <button class="btn btn-red" onclick="limparLista()">🗑️ Limpar passageiros</button>
+            <input type="file" id="file-input" accept="application/pdf" style="display:none">
+            <div id="loader">PROCESSANDO...</div>
+        </div>
+
+        <div id="passageiros-lista"></div>
+        <div id="acoes-lista" style="display:none; margin-top: 15px;">
+            <button class="btn btn-whatsapp" onclick="enviarWhatsApp()">📱 RESUMO WHATSAPP</button>
+        </div>
     </div>
 </div>
 
@@ -228,7 +150,24 @@
     const db = firebase.database();
     let atualViagemKey = null;
     let html5QrCode = null;
+    let usuarioLogado = localStorage.getItem("gb_user") || "";
     const audioBip = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
+
+    if(usuarioLogado) mostrarApp();
+
+    function fazerLogin() {
+        const nome = document.getElementById('login-nome').value.trim();
+        if(!nome) return alert("Digite seu nome!");
+        localStorage.setItem("gb_user", nome);
+        usuarioLogado = nome;
+        mostrarApp();
+    }
+
+    function mostrarApp() {
+        document.getElementById('view-login').style.display = 'none';
+        document.getElementById('app-content').style.display = 'block';
+        document.getElementById('display-user').innerText = "Operador: " + usuarioLogado;
+    }
 
     db.ref('viagens').on('value', (snapshot) => {
         const data = snapshot.val();
@@ -242,7 +181,7 @@
     function adicionarViagem() {
         const h = document.getElementById('input-hora').value;
         const d = document.getElementById('input-destino').value;
-        if(!h || !d) return alert("Preencha hora e destino!");
+        if(!h || !d) return alert("Preencha os dados!");
         db.ref('viagens').push({ hora: h, destino: d, passageiros: {}, caruaru: 0 });
     }
 
@@ -251,15 +190,89 @@
         db.ref(`viagens/${atualViagemKey}`).update({ caruaru: val });
     }
 
-    function limparLista() {
-        if (confirm("Deseja apagar todos os passageiros desta lista?")) {
-            db.ref(`viagens/${atualViagemKey}/passageiros`).remove();
+    // Lógica de desmarcar passageiro com confirmação
+    async function alternarCheck(bilhete, statusAtual) {
+        if(statusAtual === true) {
+            if(!confirm("Este passageiro já está embarcado. Deseja realmente DESMARCAR?")) return;
         }
+        db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}`).update({ ok: !statusAtual });
+        if(!statusAtual) audioBip.play();
     }
 
-    function excluirViagem(key, event) {
-        event.stopPropagation();
-        if(confirm("Excluir esta viagem permanentemente?")) db.ref('viagens/' + key).remove();
+    function renderPassageiros(v) {
+        const l = document.getElementById('passageiros-lista');
+        l.innerHTML = "";
+        if(!v.passageiros) { document.getElementById('txt-count-ok').innerText="0"; return; }
+        const paxArray = Object.values(v.passageiros).sort((a,b) => parseInt(a.polt) - parseInt(b.polt));
+        document.getElementById('txt-count-ok').innerText = paxArray.filter(p => p.ok).length;
+        document.getElementById('txt-count-pending').innerText = paxArray.length - parseInt(document.getElementById('txt-count-ok').innerText);
+        document.getElementById('acoes-lista').style.display = "block";
+        
+        paxArray.forEach(p => {
+            const div = document.createElement('div');
+            div.className = `p-row ${p.ok ? 'ok' : ''} ${p.caxanga ? 'caxanga' : ''}`;
+            div.onclick = () => alternarCheck(p.bilhete, p.ok);
+            div.innerHTML = `
+                <div class="polt-badge">${p.polt}</div>
+                <div style="flex-grow:1;">
+                    <div style="font-weight:700; font-size:14px;">${p.nome} ${p.caxanga ? '🔶' : ''}</div>
+                    <div style="font-size:11px; color:var(--text-sub)">${p.bilhete}</div>
+                </div>
+                <div style="font-size:18px;">${p.ok ? '✅' : '⬜'}</div>`;
+            l.appendChild(div);
+        });
+    }
+
+    // PDF e outras funções mantidas...
+    document.getElementById('file-input').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if(!file) return;
+        document.getElementById('loader').style.display = 'block';
+        const reader = new FileReader();
+        reader.onload = async function() {
+            try {
+                const pdfjsLib = window['pdfjs-dist/build/pdf'];
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+                const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const text = await page.getTextContent();
+                    let items = text.items.map(it => ({ str: it.str, x: it.transform[4], y: Math.round(it.transform[5]) }));
+                    let rows = [];
+                    items.forEach(item => {
+                        let row = rows.find(r => Math.abs(r.y - item.y) < 5);
+                        if (row) row.items.push(item); else rows.push({ y: item.y, items: [item] });
+                    });
+                    rows.sort((a, b) => b.y - a.y);
+                    for (let rIdx = 0; rIdx < rows.length; rIdx++) {
+                        let line = rows[rIdx].items.sort((a,b) => a.x - b.x).map(it => it.str).join(" ").toUpperCase();
+                        let poltM = line.trim().match(/^(\d{1,2})\b/);
+                        if (poltM) {
+                            let next = rows[rIdx + 1] ? rows[rIdx + 1].items.map(it => it.str).join(" ").toUpperCase() : "";
+                            let combined = line + " " + next;
+                            if (combined.includes("RECIFE") || combined.includes("CAXANGA")) {
+                                let bilMatch = combined.match(/\b(\d{6})\b/);
+                                let bilhete = bilMatch ? bilMatch[1] : "S/B-"+poltM[1];
+                                let nome = line.replace(/^\d{1,2}/, '').split("RECIFE")[0].split("CAXANGA")[0].replace(/\d+/g, '').trim();
+                                await db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}`).update({
+                                    polt: poltM[1], nome: nome, bilhete: bilhete, caxanga: combined.includes("CAXANGA")
+                                });
+                                await db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}/ok`).transaction(v => v === null ? false : v);
+                            }
+                        }
+                    }
+                }
+            } catch (err) { alert(err.message); }
+            finally { document.getElementById('loader').style.display = 'none'; e.target.value=""; }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    function adicionarViagem() {
+        const h = document.getElementById('input-hora').value;
+        const d = document.getElementById('input-destino').value;
+        if(!h || !d) return alert("Preencha os dados!");
+        db.ref('viagens').push({ hora: h, destino: d, passageiros: {}, caruaru: 0 });
     }
 
     function renderMenu(data) {
@@ -267,17 +280,10 @@
         c.innerHTML = "";
         for (let key in data) {
             const v = data[key];
-            const pCount = v.passageiros ? Object.keys(v.passageiros).length : 0;
             const div = document.createElement('div');
             div.className = 'card';
-            div.style.cursor = 'pointer';
             div.onclick = () => abrirViagem(key, v);
-            div.innerHTML = `<button class="btn-delete-viagem" onclick="excluirViagem('${key}', event)">Excluir</button>
-                <div style="text-align:center">
-                    <span style="font-size:1.2rem; font-weight:700; color:var(--primary)">${v.hora}</span><br>
-                    <span style="color:var(--text-sub); font-weight:600">${v.destino}</span><br>
-                    <span style="display:inline-block; margin-top:8px; padding:4px 12px; background:#f1f5f9; border-radius:20px; font-size:12px; font-weight:700">${pCount} Pax Recife</span>
-                </div>`;
+            div.innerHTML = `<div style="text-align:center"><strong>${v.hora} - ${v.destino}</strong></div>`;
             c.appendChild(div);
         }
     }
@@ -288,86 +294,11 @@
         document.getElementById('view-lista').style.display = 'block';
         document.getElementById('titulo-viagem').innerText = v.hora + " - " + v.destino;
         document.getElementById('div-caruaru').style.display = (v.hora === "19:05") ? "block" : "none";
-        renderPassageiros(v);
     }
 
-    function irParaMenu() {
-        if(html5QrCode) html5QrCode.stop().catch(() => {});
-        atualViagemKey = null;
-        document.getElementById('view-menu').style.display = 'block';
-        document.getElementById('view-lista').style.display = 'none';
-    }
+    function irParaMenu() { atualViagemKey = null; document.getElementById('view-menu').style.display = 'block'; document.getElementById('view-lista').style.display = 'none'; }
 
-    function renderPassageiros(v) {
-        const l = document.getElementById('passageiros-lista');
-        const txtOk = document.getElementById('txt-count-ok');
-        const txtPending = document.getElementById('txt-count-pending');
-        l.innerHTML = "";
-        if(!v.passageiros) { txtOk.innerText="0"; txtPending.innerText="0"; return; }
-        const paxArray = Object.values(v.passageiros).sort((a,b) => parseInt(a.polt) - parseInt(b.polt));
-        const okCount = paxArray.filter(p => p.ok).length;
-        txtOk.innerText = okCount;
-        txtPending.innerText = paxArray.length - okCount;
-        document.getElementById('acoes-lista').style.display = "block";
-        paxArray.forEach(p => {
-            const div = document.createElement('div');
-            div.className = `p-row ${p.ok ? 'ok' : ''} ${p.caxanga ? 'caxanga' : ''}`;
-            div.onclick = () => db.ref(`viagens/${atualViagemKey}/passageiros/${p.bilhete}`).update({ok: !p.ok});
-            div.innerHTML = `
-                <div class="polt-badge">${p.polt}</div>
-                <div style="flex-grow:1;">
-                    <div style="font-weight:700; font-size:14px;">${p.nome} ${p.caxanga ? '🔶' : ''}</div>
-                    <div style="font-size:11px; color:var(--text-sub)">BILHETE: ${p.bilhete}</div>
-                </div>
-                <div style="color: ${p.ok ? 'var(--success)' : '#e2e8f0'}">✔</div>`;
-            l.appendChild(div);
-        });
-    }
-
-    document.getElementById('file-input').addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if(!file || !atualViagemKey) return;
-        document.getElementById('loader').style.display = 'block';
-        const reader = new FileReader();
-        reader.onload = async function() {
-            try {
-                const pdfjsLib = window['pdfjs-dist/build/pdf'];
-                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-                const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    let items = textContent.items.map(it => ({ str: it.str, x: it.transform[4], y: Math.round(it.transform[5]) }));
-                    let rows = [];
-                    items.forEach(item => {
-                        let row = rows.find(r => Math.abs(r.y - item.y) < 5);
-                        if (row) row.items.push(item); else rows.push({ y: item.y, items: [item] });
-                    });
-                    rows.sort((a, b) => b.y - a.y);
-                    for (let rIdx = 0; rIdx < rows.length; rIdx++) {
-                        let currentLine = rows[rIdx].items.sort((a,b) => a.x - b.x).map(it => it.str).join(" ").toUpperCase();
-                        let poltMatch = currentLine.trim().match(/^(\d{1,2})\b/);
-                        if (poltMatch) {
-                            let polt = poltMatch[1];
-                            let nextLine = rows[rIdx + 1] ? rows[rIdx + 1].items.map(it => it.str).join(" ").toUpperCase() : "";
-                            let combinedText = currentLine + " " + nextLine;
-                            if (combinedText.includes("RECIFE") || combinedText.includes("CAXANGA")) {
-                                let bMatch = combinedText.match(/\b(\d{6})\b/);
-                                let bilhete = bMatch ? bMatch[1] : "SB-" + polt + "-" + Math.floor(Math.random()*1000);
-                                let isCaxanga = combinedText.includes("CAXANGA");
-                                let nome = currentLine.replace(/^\d{1,2}/, '').split("RECIFE")[0].split("CAXANGA")[0].replace(/\d+/g, '').replace(/\(.*\)/g, '').trim();
-                                await db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}`).update({ polt: polt, nome: nome, bilhete: bilhete, caxanga: isCaxanga });
-                                await db.ref(`viagens/${atualViagemKey}/passageiros/${bilhete}/ok`).transaction(v => v === null ? false : v);
-                            }
-                        }
-                    }
-                }
-                alert("Mapa importado com sucesso!");
-            } catch (err) { alert("Erro ao ler PDF: " + err.message); }
-            finally { document.getElementById('loader').style.display = 'none'; e.target.value = ""; }
-        };
-        reader.readAsArrayBuffer(file);
-    });
+    function limparLista() { if(confirm("Apagar todos os passageiros?")) db.ref(`viagens/${atualViagemKey}/passageiros`).remove(); }
 
     async function toggleScanner() {
         const r = document.getElementById('reader');
@@ -386,18 +317,9 @@
             const pax = Object.values(v.passageiros || {});
             const caruaru = parseInt(v.caruaru) || 0;
             const recifeOk = pax.filter(p => p.ok).length;
-            const eHorarioCaruaru = (v.hora === "19:05");
-            const totalGeral = eHorarioCaruaru ? (caruaru + recifeOk) : recifeOk;
             const faltas = pax.filter(p => !p.ok).map(p => p.polt).sort((a,b)=>a-b);
-            const caxangaRec = pax.filter(p => p.ok && p.caxanga).map(p => p.polt).sort((a,b)=>a-b);
             const agora = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-            let msg = `*RESUMO DE EMBARQUE*\n\n🕒 *Horário:* ${v.hora}\n🏁 *Saída:* ${agora}\n\n📊 *TOTAL GERAL:* ${totalGeral}\n`;
-            if (eHorarioCaruaru) msg += `↳ Caruaru: ${caruaru}\n↳ Recife: ${recifeOk}\n\n`;
-            else msg += `↳ Recife: ${recifeOk}\n\n`;
-            if(caxangaRec.length > 0) msg += `🔶 *EMBARQUE CAXANGÁ:* ${caxangaRec.length}\n↳ Polt: ${caxangaRec.join(", ")}\n\n`;
-            msg += `❌ *FALTAM (RECIFE):* ${faltas.length}\n`;
-            if(faltas.length > 0) msg += `↳ Polt: ${faltas.join(", ")}\n\n`;
-            msg += `🛰️ *MONOTRIP:* OK`;
+            let msg = `*RESUMO DE EMBARQUE*\n\n🕒 *Horário:* ${v.hora}\n🏁 *Saída:* ${agora}\n\n📊 *TOTAL GERAL:* ${(v.hora === "19:05" ? caruaru + recifeOk : recifeOk)}\n↳ Recife: ${recifeOk}\n\n❌ *FALTAM:* ${faltas.length}\n↳ Polt: ${faltas.join(", ")}\n\nOperador: ${usuarioLogado}`;
             window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
         });
     }
