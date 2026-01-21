@@ -12,66 +12,63 @@
 
     <style>
         :root { --primary: #002d5e; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --bg: #f3f4f6; }
-        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); margin: 0; }
-        header { background: var(--primary); color: white; padding: 15px; text-align: center; font-weight: bold; position: sticky; top:0; z-index:100; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; }
+        header { background: var(--primary); color: white; padding: 15px; text-align: center; font-weight: bold; }
         .container { max-width: 500px; margin: auto; padding: 15px; }
         .card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 15px; }
-        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
         .btn { border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-blue { background: var(--primary); color: white; }
         .btn-red { background: var(--danger); color: white; }
-        .btn-qr { background: #6366f1; color: white; }
+        .btn-zap { background: #25d366; color: white; }
         .p-row { display: flex; align-items: center; padding: 12px; background: white; border-radius: 12px; margin-bottom: 8px; border: 1px solid #eee; }
         .p-row.ok { border-left: 5px solid var(--success); background: #f0fdf4; }
         .polt { background: #e2e8f0; min-width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 5px; font-weight: bold; margin-right: 12px; }
-        #reader { width: 100%; border-radius: 10px; overflow: hidden; margin-bottom: 10px; display: none; background: #000; }
+        #reader { width: 100%; border-radius: 10px; overflow: hidden; margin-bottom: 10px; display: none; }
         #modal-excesso { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center; }
-        .loader-text { color: var(--primary); font-weight: bold; display: none; margin: 10px 0; }
     </style>
 </head>
 <body>
 
-<div id="view-login" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: var(--primary); color: white; text-align: center;">
-    <h1 style="margin-bottom: 5px;">GUANABARA</h1>
-    <p style="margin-top: 0; opacity: 0.8;">Unidade Recife</p>
+<div id="view-login" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: var(--primary); color: white;">
+    <h2>GUANABARA RECIFE</h2>
     <div class="container" style="width: 90%;">
         <input type="text" id="login-mat" placeholder="Matrícula">
         <input type="password" id="login-pass" placeholder="Senha">
-        <button class="btn" style="background:white; color:var(--primary)" onclick="autenticar()">ENTRAR NO SISTEMA</button>
+        <button class="btn" style="background:white; color:var(--primary)" onclick="autenticar()">ENTRAR</button>
     </div>
 </div>
 
 <div id="app-content" style="display: none;">
-    <header>GUANABARA RECIFE <br> <small id="user-info" style="font-size: 11px;"></small></header>
+    <header>GUANABARA RECIFE <br> <small id="user-info"></small></header>
 
     <div id="view-menu" class="container">
-        <div id="area-master" class="card" style="display:none; border-top: 5px solid var(--warning);">
+        <div id="area-master" class="card" style="display:none">
             <h3 style="margin-top:0">PROGRAMAR VIAGEM</h3>
             <input type="time" id="new-hora">
-            <input type="text" id="new-dest" placeholder="Destino Final">
-            <button class="btn btn-blue" onclick="criarViagem()">➕ CRIAR NOVA LISTA</button>
-            <button class="btn" style="background:#64748b; color:white" onclick="toggleUserAdm()">👥 GERENCIAR OPERADORES</button>
+            <input type="text" id="new-dest" placeholder="Destino">
+            <button class="btn btn-blue" onclick="criarViagem()">➕ CRIAR LISTA</button>
+            <button class="btn" style="background:#64748b; color:white" onclick="toggleUserAdm()">👥 CADASTRAR OPERADOR</button>
             
-            <div id="user-adm" style="display:none; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-                <input type="text" id="adm-nome" placeholder="Nome Completo">
+            <div id="user-adm" style="display:none; margin-top:15px;">
+                <input type="text" id="adm-nome" placeholder="Nome">
                 <input type="text" id="adm-mat" placeholder="Matrícula">
                 <input type="password" id="adm-pass" placeholder="Senha">
-                <button class="btn btn-blue" onclick="salvarOperador()">SALVAR ACESSO</button>
+                <button class="btn btn-blue" onclick="salvarOperador()">CADASTRAR</button>
             </div>
         </div>
-        <h4 style="margin-left: 10px; color: #64748b;">VIAGENS ATIVAS:</h4>
         <div id="list-viagens"></div>
     </div>
 
     <div id="view-detalhe" class="container" style="display:none">
-        <button onclick="voltar()" style="background:none; border:none; color:var(--primary); font-weight:bold; cursor:pointer; margin-bottom:15px; font-size: 16px;">◀ VOLTAR AO MENU</button>
+        <button onclick="voltar()" style="background:none; border:none; color:var(--primary); font-weight:bold; cursor:pointer; margin-bottom:10px;">◀ VOLTAR</button>
         <div class="card">
-            <h3 id="detalhe-titulo" style="text-align:center; margin-top:0; color: var(--primary);"></h3>
+            <h3 id="detalhe-titulo" style="text-align:center; margin-top:0"></h3>
             <div id="reader"></div>
-            <button class="btn btn-qr" onclick="startScan()">📸 LER QR CODE (EMBARQUE)</button>
-            <button class="btn btn-blue" onclick="document.getElementById('pdf-file').click()">📥 IMPORTAR MAPA (PDF)</button>
-            <div id="loader" class="loader-text">⏳ PROCESSANDO MAPA... AGUARDE</div>
-            <button class="btn btn-red" onclick="limparMapa()" style="background: #fee2e2; color: #b91c1c;">🗑️ LIMPAR TODO O MAPA</button>
+            <button class="btn" style="background:#6366f1; color:white" onclick="startScan()">📸 LER QR CODE</button>
+            <button class="btn btn-blue" onclick="document.getElementById('pdf-file').click()">📥 IMPORTAR PDF</button>
+            <button class="btn btn-zap" onclick="finalizarEmbarque()">✅ FINALIZAR EMBARQUE (ZAP)</button>
+            <button class="btn btn-red" onclick="limparMapa()">🗑️ LIMPAR MAPA</button>
             <input type="file" id="pdf-file" accept="application/pdf" style="display:none">
         </div>
         <div id="lista-pax"></div>
@@ -81,12 +78,12 @@
 <div id="modal-excesso">
     <div class="card" style="width: 85%;">
         <h3>📦 EXCESSO DE BAGAGEM</h3>
-        <p id="ex-pax-nome" style="font-weight:bold; background: #f8fafc; padding: 10px; border-radius: 8px;"></p>
-        <input type="number" id="ex-qtd" placeholder="Qtd de Volumes">
-        <input type="number" id="ex-val" placeholder="Valor Cobrado R$">
+        <p id="ex-pax-nome" style="font-weight:bold"></p>
+        <input type="number" id="ex-qtd" placeholder="Volumes">
+        <input type="number" id="ex-val" placeholder="Valor R$">
         <select id="ex-ben"></select>
-        <button class="btn btn-blue" style="background:#25d366" onclick="zapExcesso()">SALVAR E ENVIAR AO GRUPO 📱</button>
-        <button class="btn" style="background: none; color: gray;" onclick="document.getElementById('modal-excesso').style.display='none'">CANCELAR</button>
+        <button class="btn btn-zap" onclick="zapExcesso()">SALVAR E ENVIAR ZAP 📱</button>
+        <button class="btn" onclick="document.getElementById('modal-excesso').style.display='none'">CANCELAR</button>
     </div>
 </div>
 
@@ -102,63 +99,27 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    let userLogado = null;
-    let vKey = null;
-    let paxEx = null;
-    let scanner = null;
+    let userLogado = null, vKey = null, paxEx = null, scanner = null;
 
-    // LOGIN
     function autenticar() {
-        const m = document.getElementById('login-mat').value.trim();
-        const p = document.getElementById('login-pass').value.trim();
-        if(m === "c07011946" && p === "guana123") {
-            logar({nome: "Master", mat: m, role: "master"});
-        } else {
-            db.ref('usuarios/'+m).once('value', s => {
-                const u = s.val();
-                if(u && u.pass === p) logar(u); else alert("Usuário ou Senha inválidos!");
-            });
-        }
+        const m = document.getElementById('login-mat').value;
+        const p = document.getElementById('login-pass').value;
+        if(m === "c07011946" && p === "guana123") logar({nome: "Master", mat: m, role: "master"});
+        else db.ref('usuarios/'+m).once('value', s => {
+            const u = s.val();
+            if(u && u.pass === p) logar(u); else alert("Erro!");
+        });
     }
 
     function logar(u) {
         userLogado = u;
         document.getElementById('view-login').style.display='none';
         document.getElementById('app-content').style.display='block';
-        document.getElementById('user-info').innerText = "Operador: " + u.nome + " (" + u.mat + ")";
+        document.getElementById('user-info').innerText = "Logado: " + u.nome;
         if(u.role === 'master') document.getElementById('area-master').style.display='block';
-        carregarBeneficiarios();
-        carregarViagens();
+        carregarBeneficiarios(); carregarViagens();
     }
 
-    // CADASTRO DE OPERADORES
-    function toggleUserAdm() { 
-        const d = document.getElementById('user-adm');
-        d.style.display = d.style.display === 'none' ? 'block' : 'none';
-    }
-
-    function salvarOperador() {
-        const n = document.getElementById('adm-nome').value;
-        const m = document.getElementById('adm-mat').value;
-        const p = document.getElementById('adm-pass').value;
-        if(n && m && p) {
-            db.ref('usuarios/'+m).set({nome: n, mat: m, pass: p, role: 'operador'}).then(() => {
-                alert("Operador " + n + " cadastrado com sucesso!");
-                toggleUserAdm();
-            });
-        }
-    }
-
-    function carregarBeneficiarios() {
-        db.ref('usuarios').on('value', s => {
-            const u = s.val();
-            const sel = document.getElementById('ex-ben');
-            sel.innerHTML = '<option value="">Comissão para...</option><option value="Master">Master</option>';
-            for(let k in u) sel.innerHTML += `<option value="${u[k].nome}">${u[k].nome}</option>`;
-        });
-    }
-
-    // VIAGENS
     function carregarViagens() {
         db.ref('viagens').on('value', s => {
             const data = s.val();
@@ -167,10 +128,10 @@
             for(let k in data) {
                 const v = data[k];
                 const div = document.createElement('div');
-                div.className = 'p-row';
-                div.style.cursor = 'pointer';
-                div.innerHTML = `<div style="flex-grow:1"><strong>${v.hora}</strong> - ${v.dest}</div> <span>➔</span>`;
-                div.onclick = () => abrirViagem(k, v);
+                div.className = 'card';
+                div.style.display = 'flex'; div.style.justifyContent = 'space-between';
+                div.innerHTML = `<div onclick="abrirViagem('${k}', {hora:'${v.hora}', dest:'${v.dest}'})" style="flex-grow:1"><strong>${v.hora}</strong> - ${v.dest}</div>
+                ${userLogado.role==='master' ? `<span onclick="apagarViagem('${k}')">🗑️</span>` : ''}`;
                 container.appendChild(div);
             }
         });
@@ -187,162 +148,100 @@
     function renderPax(data) {
         const list = document.getElementById('lista-pax');
         list.innerHTML = "";
-        if(!data) {
-            list.innerHTML = "<p style='text-align:center; color:gray;'>Nenhum passageiro importado.</p>";
-            return;
-        }
-        Object.values(data).sort((a,b)=>parseInt(a.polt) - parseInt(b.polt)).forEach(p => {
+        if(!data) return;
+        Object.values(data).sort((a,b)=>a.polt - b.polt).forEach(p => {
             const div = document.createElement('div');
             div.className = `p-row ${p.ok ? 'ok' : ''}`;
-            div.innerHTML = `
-                <div class="polt">${p.polt}</div>
+            div.innerHTML = `<div class="polt">${p.polt}</div>
                 <div style="flex-grow:1" onclick="check('${p.bilhete}', ${p.ok})">
                     <div style="font-weight:bold; font-size:14px">${p.nome}</div>
                     <div style="font-size:11px; color:#666">${p.bilhete}</div>
                 </div>
-                <button class="btn" style="width:45px; height:40px; background:var(--warning); margin:0" onclick="modalEx('${p.bilhete}', '${p.nome}', event)">🧳</button>
-            `;
+                <button class="btn" style="width:40px; background:var(--warning); margin:0" onclick="modalEx('${p.bilhete}', '${p.nome}', event)">🧳</button>`;
             list.appendChild(div);
         });
     }
 
-    function check(bil, status) {
-        db.ref(`viagens/${vKey}/pax/${bil}`).update({
-            ok: !status,
-            operador: !status ? userLogado.nome : null,
-            hora_emb: !status ? new Date().toLocaleTimeString() : null
+    function finalizarEmbarque() {
+        db.ref(`viagens/${vKey}`).once('value', s => {
+            const v = s.val();
+            const p = Object.values(v.pax || {});
+            const ok = p.filter(x => x.ok).length;
+            const total = p.length;
+            const msg = `*✅ FINALIZAÇÃO DE EMBARQUE*\n----------------------------\n*🚌 Viagem:* ${v.hora} - ${v.dest}\n*✅ Embarcados:* ${ok}\n*❌ Faltas:* ${total - ok}\n*📋 Total Carro:* ${total}\n*🆔 Operador:* ${userLogado.nome}`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
         });
     }
 
-    // EXCESSO ZAP
-    function modalEx(bil, nome, e) {
-        e.stopPropagation();
-        paxEx = {bil, nome};
-        document.getElementById('ex-pax-nome').innerText = nome;
-        document.getElementById('modal-excesso').style.display='flex';
-    }
-
     function zapExcesso() {
-        const qtd = document.getElementById('ex-qtd').value;
-        const val = document.getElementById('ex-val').value;
-        const ben = document.getElementById('ex-ben').value;
-        const hora = new Date().toLocaleTimeString();
-        const viagem = document.getElementById('detalhe-titulo').innerText;
-        
-        if(!qtd || !val || !ben) return alert("Por favor, preencha todos os campos!");
-
-        const msg = `*📦 REGISTRO DE EXCESSO DE BAGAGEM*\n` +
-                    `--------------------------------------\n` +
-                    `🚌 *Viagem:* ${viagem}\n` +
-                    `👤 *Passageiro:* ${paxEx.nome}\n` +
-                    `🎫 *Bilhete:* ${paxEx.bil}\n` +
-                    `📦 *Volumes:* ${qtd}\n` +
-                    `💰 *Valor Pago:* R$ ${val}\n` +
-                    `🏅 *Comissão:* ${ben}\n` +
-                    `⏰ *Horário:* ${hora}\n` +
-                    `🆔 *Operador:* ${userLogado.nome}`;
-
+        const q = document.getElementById('ex-qtd').value, v = document.getElementById('ex-val').value, b = document.getElementById('ex-ben').value;
+        if(!q || !v || !b) return alert("Erro");
+        const msg = `*📦 EXCESSO:* ${paxEx.nome}\n*🎫 Bilhete:* ${paxEx.bil}\n*📦 Vols:* ${q} | *💰 Valor:* R$ ${v}\n*🏅 Comis:* ${b}\n*🆔 Operador:* ${userLogado.nome}`;
         window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
         document.getElementById('modal-excesso').style.display='none';
     }
 
-    // QR CODE
-    function startScan() {
-        const r = document.getElementById('reader');
-        r.style.display = 'block';
-        if(scanner) scanner.stop();
-        scanner = new Html5Qrcode("reader");
-        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
-            const b = txt.match(/\d{6}/); // Busca os 6 dígitos do bilhete
-            if(b) { 
-                db.ref(`viagens/${vKey}/pax/${b[0]}`).update({ok:true, operador:userLogado.nome, hora_emb: new Date().toLocaleTimeString()}); 
-                scanner.stop(); 
-                r.style.display='none'; 
-                alert("Embarque Confirmado!");
-            }
-        });
+    function check(bil, status) {
+        db.ref(`viagens/${vKey}/pax/${bil}`).update({ ok: !status, operador: !status ? userLogado.nome : null });
     }
 
-    // PDF REFORÇADO (CORREÇÃO AQUI)
+    function apagarViagem(k) { if(confirm("Excluir horário?")) db.ref('viagens/'+k).remove(); }
+    
+    function limparMapa() { if(confirm("Limpar mapa?")) db.ref(`viagens/${vKey}/pax`).remove(); }
+
+    function voltar() { document.getElementById('view-menu').style.display='block'; document.getElementById('view-detalhe').style.display='none'; }
+    
+    function criarViagem() {
+        const h = document.getElementById('new-hora').value, d = document.getElementById('new-dest').value;
+        if(h && d) db.ref('viagens').push({hora: h, dest: d});
+    }
+
+    // PDF RESTAURADO
     document.getElementById('pdf-file').onchange = async (e) => {
         const file = e.target.files[0];
-        if(!file) return;
-        document.getElementById('loader').style.display = 'block';
-        
         const reader = new FileReader();
         reader.onload = async function() {
-            try {
-                const typedarray = new Uint8Array(this.result);
-                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-                const pdf = await pdfjsLib.getDocument(typedarray).promise;
-                
-                for(let i=1; i<=pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const text = await page.getTextContent();
-                    const items = text.items;
-                    
-                    for(let j=0; j<items.length; j++) {
-                        const str = items[j].str.trim();
-                        // Se encontrar um número de 1 ou 2 dígitos (Poltrona)
-                        if(str.match(/^\d{1,2}$/)) { 
-                            const polt = str;
-                            // O nome costuma ser o próximo item grande
-                            let nome = "";
-                            let bil = "SB-"+polt;
-
-                            // Procura o nome e o bilhete nos próximos 10 campos
-                            for(let k=1; k<10; k++) {
-                                if(items[j+k]) {
-                                    let content = items[j+k].str.trim();
-                                    if(content.length > 5 && !nome) nome = content;
-                                    if(content.match(/^\d{6,}/)) bil = content;
-                                }
-                            }
-
-                            if(nome && nome.length > 2 && !nome.includes("SUBTOTAL")) {
-                                db.ref(`viagens/${vKey}/pax/${bil}`).update({
-                                    polt: polt, 
-                                    nome: nome, 
-                                    bilhete: bil, 
-                                    ok: false
-                                });
-                            }
-                        }
+            const typedarray = new Uint8Array(this.result);
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+            const pdf = await pdfjsLib.getDocument(typedarray).promise;
+            for(let i=1; i<=pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const text = await page.getTextContent();
+                const items = text.items;
+                for(let j=0; j<items.length; j++) {
+                    const str = items[j].str.trim();
+                    if(str.match(/^\d{1,2}$/)) {
+                        const nome = items[j+1] ? items[j+1].str.trim() : "";
+                        const bil = items[j+5] ? items[j+5].str.trim() : "SB-"+str;
+                        if(nome.length > 3) db.ref(`viagens/${vKey}/pax/${bil}`).update({polt: str, nome: nome, bilhete: bil, ok: false});
                     }
                 }
-            } catch (err) {
-                alert("Erro ao ler PDF: " + err.message);
-            } finally {
-                document.getElementById('loader').style.display = 'none';
-                e.target.value = "";
             }
         };
         reader.readAsArrayBuffer(file);
     };
 
-    function limparMapa() {
-        if(confirm("ATENÇÃO: Isso apagará todos os passageiros desta viagem. Confirmar?")) {
-            db.ref(`viagens/${vKey}/pax`).remove();
-        }
+    function toggleUserAdm() { document.getElementById('user-adm').style.display = 'block'; }
+    function salvarOperador() {
+        const n = document.getElementById('adm-nome').value, m = document.getElementById('adm-mat').value, p = document.getElementById('adm-pass').value;
+        db.ref('usuarios/'+m).set({nome: n, mat: m, pass: p, role: 'operador'}).then(()=>alert("Ok"));
     }
-
-    function criarViagem() {
-        const h = document.getElementById('new-hora').value;
-        const d = document.getElementById('new-dest').value;
-        if(h && d) {
-            db.ref('viagens').push({hora: h, dest: d.toUpperCase()});
-            document.getElementById('new-hora').value = "";
-            document.getElementById('new-dest').value = "";
-        } else {
-            alert("Preencha hora e destino!");
-        }
+    function carregarBeneficiarios() {
+        db.ref('usuarios').on('value', s => {
+            const u = s.val(); const sel = document.getElementById('ex-ben');
+            sel.innerHTML = '<option value="Master">Master</option>';
+            for(let k in u) sel.innerHTML += `<option value="${u[k].nome}">${u[k].nome}</option>`;
+        });
     }
-
-    function voltar() {
-        if(scanner) scanner.stop().catch(()=>{});
-        document.getElementById('view-menu').style.display='block';
-        document.getElementById('view-detalhe').style.display='none';
+    function startScan() {
+        const r = document.getElementById('reader'); r.style.display = 'block';
+        scanner = new Html5Qrcode("reader");
+        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
+            const b = txt.match(/\d{6}/);
+            if(b) { db.ref(`viagens/${vKey}/pax/${b[0]}`).update({ok:true, operador:userLogado.nome}); scanner.stop(); r.style.display='none'; }
+        });
     }
+    function modalEx(bil, nome, e) { e.stopPropagation(); paxEx = {bil, nome}; document.getElementById('ex-pax-nome').innerText = nome; document.getElementById('modal-excesso').style.display='flex'; }
 </script>
 </body>
 </html>
