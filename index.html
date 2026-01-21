@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#002d5e">
     <title>Guanabara Check-in PRO</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
@@ -12,23 +17,59 @@
 
     <style>
         :root { --primary: #002d5e; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --bg: #f3f4f6; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding-bottom: 30px; }
         
-        /* Cabeçalho */
-        header { background: var(--primary); color: white; padding: 15px; text-align: center; position: sticky; top:0; z-index:100; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .user-row { display: flex; justify-content: space-between; align-items: center; max-width: 500px; margin: auto; font-size: 14px; }
-        .btn-logout { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            background: var(--bg); 
+            margin: 0; 
+            padding-bottom: 40px; 
+            height: 100vh; /* Tela cheia */
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Cabeçalho Fixo */
+        header { 
+            background: var(--primary); 
+            color: white; 
+            padding: 15px; 
+            text-align: center; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+            flex-shrink: 0;
+        }
+        
+        .user-row { display: flex; justify-content: space-between; align-items: center; max-width: 500px; margin: auto; }
+        .btn-logout { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
         
         /* Layout */
-        .container { max-width: 500px; margin: auto; padding: 15px; }
-        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 15px; position: relative; }
+        .container { max-width: 500px; margin: auto; padding: 15px; width: 100%; box-sizing: border-box; flex-grow: 1; overflow-y: auto; }
+        .card { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 15px; }
+        
+        /* Contador de Passageiros (Novo) */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            background: white;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        .sb-item { text-align: center; width: 33%; }
+        .sb-val { display: block; font-size: 18px; font-weight: bold; color: var(--primary); }
+        .sb-lbl { font-size: 11px; color: #64748b; text-transform: uppercase; }
         
         /* Inputs e Botões */
         input, select { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
-        .btn { border: none; padding: 16px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; text-transform: uppercase; }
-        .btn-blue { background: var(--primary); color: white; }
+        .btn { border: none; padding: 16px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; text-transform: uppercase; color: white; }
+        .btn-blue { background: var(--primary); }
         .btn-red { background: #fee2e2; color: #b91c1c; }
-        .btn-zap { background: #25d366; color: white; }
+        .btn-zap { background: #25d366; }
+        .btn-gray { background: #64748b; }
         
         /* Lista de Passageiros */
         .p-row { display: flex; align-items: center; padding: 12px; background: white; border-radius: 12px; margin-bottom: 8px; border: 1px solid #eee; transition: 0.2s; }
@@ -39,40 +80,63 @@
         .p-bil { font-size: 13px; color: #64748b; margin-top: 2px; }
         
         /* Utilitários */
-        .trash { position: absolute; right: 15px; top: 15px; color: var(--danger); font-size: 22px; cursor: pointer; padding: 5px; }
+        .trash { float: right; color: var(--danger); cursor: pointer; padding: 5px; }
         #reader { width: 100%; border-radius: 12px; overflow: hidden; margin-bottom: 15px; display: none; background: black; }
         #modal-excesso, #loader { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; align-items:center; justify-content:center; flex-direction: column; color: white; }
+        
+        /* Lista de Operadores */
+        .op-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee; font-size: 14px; }
     </style>
 </head>
 <body>
 
-<div id="view-login" style="display: none; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: var(--primary); color: white;">
+<div id="view-login" style="display: none; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: var(--primary); color: white; position: absolute; top: 0; width: 100%; z-index: 200;">
     <h1 style="margin-bottom: 5px;">GUANABARA</h1>
-    <p style="opacity: 0.8; margin-top: 0;">SISTEMA DE CHECK-IN</p>
-    <div class="container" style="width: 85%;">
+    <p style="opacity: 0.8; margin-top: 0;">CHECK-IN PRO</p>
+    <div style="width: 80%; max-width: 300px;">
         <input type="text" id="login-mat" placeholder="Matrícula">
         <input type="password" id="login-pass" placeholder="Senha">
-        <button class="btn" style="background:white; color:var(--primary)" onclick="autenticar()">ENTRAR</button>
+        <button class="btn btn-blue" style="background: white; color: var(--primary);" onclick="autenticar()">ENTRAR</button>
     </div>
 </div>
 
-<div id="app-content" style="display: none;">
+<div id="app-content" style="display: none; height: 100%; flex-direction: column;">
     <header>
         <div class="user-row">
-            <span id="header-title">GUANABARA RECIFE</span>
+            <span style="font-weight: bold; font-size: 16px;">GUANABARA RECIFE</span>
             <button class="btn-logout" onclick="logout()">SAIR</button>
         </div>
         <small id="user-display" style="opacity: 0.8; display: block; margin-top: 5px;"></small>
     </header>
 
     <div id="view-menu" class="container">
+        
         <div id="area-master" class="card" style="display:none; border-top: 4px solid var(--warning);">
-            <h3 style="margin:0 0 10px 0; color:var(--primary)">NOVA VIAGEM</h3>
-            <div style="display: flex; gap: 5px;">
-                <input type="time" id="new-hora" style="width: 35%;">
-                <input type="text" id="new-dest" placeholder="Destino" style="width: 65%;">
+            <h3 style="margin:0 0 10px 0; color:var(--primary)">ADMINISTRAÇÃO</h3>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="font-size:12px; color:#666; font-weight:bold;">CRIAR VIAGEM:</label>
+                <div style="display: flex; gap: 5px;">
+                    <input type="time" id="new-hora" style="width: 35%;">
+                    <input type="text" id="new-dest" placeholder="Destino" style="width: 65%;">
+                </div>
+                <button class="btn btn-blue" style="margin-top:5px; padding: 12px;" onclick="criarViagem()">➕ CRIAR LISTA</button>
             </div>
-            <button class="btn btn-blue" onclick="criarViagem()">➕ CRIAR LISTA</button>
+
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+
+            <button class="btn btn-gray" style="padding: 12px; font-size: 13px;" onclick="toggleEquipe()">👥 GERENCIAR EQUIPE</button>
+            
+            <div id="box-equipe" style="display: none; margin-top: 15px; background: #f8fafc; padding: 10px; border-radius: 8px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px;">Novo Operador:</h4>
+                <input type="text" id="cad-nome" placeholder="Nome" style="padding: 10px; font-size: 14px;">
+                <input type="text" id="cad-mat" placeholder="Matrícula" style="padding: 10px; font-size: 14px;">
+                <input type="text" id="cad-pass" placeholder="Senha" style="padding: 10px; font-size: 14px;">
+                <button class="btn btn-blue" style="padding: 10px;" onclick="cadastrarOperador()">SALVAR</button>
+                
+                <h4 style="margin: 15px 0 5px 0; font-size: 14px;">Operadores Ativos:</h4>
+                <div id="lista-ops" style="background: white; border: 1px solid #eee; border-radius: 5px;"></div>
+            </div>
         </div>
         
         <h4 style="color:#64748b; margin: 10px 5px;">VIAGENS DISPONÍVEIS:</h4>
@@ -80,18 +144,36 @@
     </div>
 
     <div id="view-detalhe" class="container" style="display:none">
-        <button onclick="voltar()" style="background:none; border:none; color:var(--primary); font-weight:bold; cursor:pointer; margin-bottom:15px; font-size:16px;">◀ VOLTAR</button>
+        <button onclick="voltar()" style="background:none; border:none; color:var(--primary); font-weight:bold; cursor:pointer; margin-bottom:10px; font-size:16px;">◀ MENU PRINCIPAL</button>
         
-        <div class="card">
-            <h3 id="detalhe-titulo" style="text-align:center; margin:0; color:var(--primary)"></h3>
-            <p style="text-align:center; color:gray; font-size:12px; margin-bottom:15px;">Importe o PDF para carregar a lista</p>
+        <div class="card" style="padding: 15px;">
+            <h3 id="detalhe-titulo" style="text-align:center; margin:0 0 10px 0; color:var(--primary)"></h3>
             
-            <div id="reader"></div> <button class="btn" style="background:#6366f1; color:white" onclick="startScan()">📸 LER QR CODE</button>
-            <button class="btn btn-blue" onclick="document.getElementById('pdf-file').click()">📥 IMPORTAR MAPA (PDF)</button>
-            <button class="btn btn-zap" onclick="finalizarEmbarque()">✅ FINALIZAR EMBARQUE</button>
-            <button class="btn btn-red" onclick="limparMapa()">🗑️ LIMPAR LISTA</button>
+            <div id="reader"></div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn btn-blue" style="margin:0; font-size:12px;" onclick="document.getElementById('pdf-file').click()">📥 IMPORTAR PDF</button>
+                <button class="btn btn-blue" style="margin:0; background:#6366f1; font-size:12px;" onclick="startScan()">📸 LER QR</button>
+            </div>
+            <button class="btn btn-zap" style="margin-top:10px; font-size:13px;" onclick="finalizarEmbarque()">✅ FINALIZAR EMBARQUE</button>
+            <button class="btn btn-red" style="margin-top:10px; font-size:13px;" onclick="limparMapa()">🗑️ LIMPAR LISTA</button>
             
             <input type="file" id="pdf-file" accept="application/pdf" style="display:none">
+        </div>
+
+        <div class="status-bar">
+            <div class="sb-item">
+                <span class="sb-val" id="cnt-total">0</span>
+                <span class="sb-lbl">Total</span>
+            </div>
+            <div class="sb-item" style="border-left:1px solid #eee; border-right:1px solid #eee;">
+                <span class="sb-val" style="color:var(--success)" id="cnt-ok">0</span>
+                <span class="sb-lbl">Embarcados</span>
+            </div>
+            <div class="sb-item">
+                <span class="sb-val" style="color:var(--danger)" id="cnt-rest">0</span>
+                <span class="sb-lbl">Faltam</span>
+            </div>
         </div>
 
         <div id="lista-pax"></div>
@@ -112,11 +194,10 @@
 
 <div id="loader">
     <div style="font-size: 40px;">⏳</div>
-    <p>PROCESSANDO MAPA...</p>
+    <p>PROCESSANDO...</p>
 </div>
 
 <script>
-    // --- CONFIGURAÇÃO FIREBASE ---
     const firebaseConfig = {
         apiKey: "AIzaSyAnjkMAQbs9h2cZNfl0SVhgcdix1A0laL0",
         authDomain: "guanabara-checkin.firebaseapp.com",
@@ -129,26 +210,19 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let userLogado = null;
-    let vKey = null;
-    let paxEx = null;
-    let scanner = null;
+    let userLogado = null, vKey = null, paxEx = null, scanner = null;
 
-    // --- SISTEMA DE LOGIN PERSISTENTE ---
+    // --- LOGIN ---
     window.onload = () => {
         const savedUser = localStorage.getItem('userGuana');
-        if(savedUser) {
-            logar(JSON.parse(savedUser));
-        } else {
-            document.getElementById('view-login').style.display = 'flex';
-        }
+        if(savedUser) logar(JSON.parse(savedUser));
+        else document.getElementById('view-login').style.display = 'flex';
     };
 
     function autenticar() {
         const m = document.getElementById('login-mat').value.trim();
         const p = document.getElementById('login-pass').value.trim();
         
-        // Login Master Fixo
         if(m === "c07011946" && p === "guana123") {
             const u = {nome: "Master", mat: m, role: "master"};
             localStorage.setItem('userGuana', JSON.stringify(u));
@@ -156,27 +230,25 @@
             return;
         }
 
-        // Login Operadores
         db.ref('usuarios/'+m).once('value', s => {
             const u = s.val();
             if(u && u.pass === p) {
                 const userData = {nome: u.nome, mat: m, role: 'operador'};
                 localStorage.setItem('userGuana', JSON.stringify(userData));
                 logar(userData);
-            } else {
-                alert("Dados incorretos!");
-            }
+            } else alert("Dados incorretos!");
         });
     }
 
     function logar(u) {
         userLogado = u;
         document.getElementById('view-login').style.display = 'none';
-        document.getElementById('app-content').style.display = 'block';
+        document.getElementById('app-content').style.display = 'flex';
         document.getElementById('user-display').innerText = `Operador: ${u.nome}`;
         
         if(u.role === 'master') {
             document.getElementById('area-master').style.display = 'block';
+            listarOperadores();
         }
         
         carregarViagens();
@@ -190,11 +262,56 @@
         }
     }
 
-    // --- LEITURA DE PDF INTELIGENTE ---
+    // --- GESTÃO DE OPERADORES (MASTER) ---
+    function toggleEquipe() {
+        const d = document.getElementById('box-equipe');
+        d.style.display = d.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function cadastrarOperador() {
+        const n = document.getElementById('cad-nome').value;
+        const m = document.getElementById('cad-mat').value;
+        const p = document.getElementById('cad-pass').value;
+
+        if(n && m && p) {
+            db.ref('usuarios/'+m).set({nome: n, mat: m, pass: p, role: 'operador'})
+            .then(() => {
+                alert("Operador cadastrado!");
+                document.getElementById('cad-nome').value="";
+                document.getElementById('cad-mat').value="";
+                document.getElementById('cad-pass').value="";
+                listarOperadores();
+            });
+        } else alert("Preencha todos os campos");
+    }
+
+    function listarOperadores() {
+        db.ref('usuarios').once('value', s => {
+            const div = document.getElementById('lista-ops');
+            div.innerHTML = "";
+            s.forEach(child => {
+                const u = child.val();
+                if(u.role !== 'master') {
+                    div.innerHTML += `
+                    <div class="op-item">
+                        <span>${u.nome} (${u.mat})</span>
+                        <span style="color:red; font-weight:bold; cursor:pointer" onclick="delOperador('${u.mat}')">✖</span>
+                    </div>`;
+                }
+            });
+        });
+    }
+
+    function delOperador(mat) {
+        if(confirm("Excluir este operador?")) {
+            db.ref('usuarios/'+mat).remove().then(() => listarOperadores());
+        }
+    }
+
+    // --- PDF INTELIGENTE ---
     document.getElementById('pdf-file').onchange = async (e) => {
         const file = e.target.files[0];
         if(!file) return;
-
         document.getElementById('loader').style.display = 'flex';
 
         const reader = new FileReader();
@@ -203,58 +320,35 @@
                 const typedarray = new Uint8Array(this.result);
                 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
                 const pdf = await pdfjsLib.getDocument(typedarray).promise;
-                
                 let count = 0;
 
                 for(let i=1; i<=pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
                     const text = await page.getTextContent();
-                    const items = text.items;
-
-                    // Agrupar itens pela posição vertical (Y) para montar a linha
                     const lines = {};
-                    items.forEach(item => {
-                        const y = Math.round(item.transform[5]); // Posição Y
+                    
+                    text.items.forEach(item => {
+                        const y = Math.round(item.transform[5]);
                         if(!lines[y]) lines[y] = [];
                         lines[y].push(item);
                     });
 
-                    // Processar cada linha
                     for(let y in lines) {
-                        // Ordenar itens da esquerda para a direita (X)
-                        const rowItems = lines[y].sort((a,b) => a.transform[4] - b.transform[4]);
-                        // Juntar o texto da linha em uma única string
-                        const fullLine = rowItems.map(it => it.str.trim()).join(" ");
+                        const fullLine = lines[y].sort((a,b) => a.transform[4] - b.transform[4])
+                                                 .map(it => it.str.trim()).join(" ");
                         
-                        // REGEX PODEROSA:
-                        // 1. Começa com 1 ou 2 dígitos (Poltrona)
-                        // 2. Tem texto (Nome)
-                        // 3. Procura especificamente uma sequência de 6 dígitos (Bilhete)
-                        // 4. Ignora CPF (11 digitos) e Telefones
-                        
-                        // Procura poltrona no inicio
                         const matchPolt = fullLine.match(/^(\d{1,2})\s+/);
-                        
                         if(matchPolt) {
                             const polt = matchPolt[1];
-                            
-                            // Procura bilhete: sequência isolada de 6 dígitos
-                            // \b garante que não é parte de um número maior
                             const matchBil = fullLine.match(/\b(\d{6})\b/); 
                             
                             if(matchBil) {
                                 const bil = matchBil[1];
-                                
-                                // O nome está entre a poltrona e os números
-                                // Removemos a poltrona e pegamos o texto até o primeiro número
                                 let nome = fullLine.replace(/^(\d{1,2})\s+/, "").split(/\d/)[0].trim();
                                 
                                 if(nome.length > 3 && !nome.includes("SUBTOTAL")) {
                                     db.ref(`viagens/${vKey}/pax/${bil}`).update({
-                                        polt: polt,
-                                        nome: nome.toUpperCase(),
-                                        bilhete: bil,
-                                        ok: false
+                                        polt: polt, nome: nome.toUpperCase(), bilhete: bil, ok: false
                                     });
                                     count++;
                                 }
@@ -262,85 +356,70 @@
                         }
                     }
                 }
-                
-                if(count > 0) alert(`${count} passageiros importados!`);
-                else alert("Nenhum passageiro encontrado. Verifique se é o PDF correto.");
-
-            } catch (err) {
-                alert("Erro ao ler PDF: " + err.message);
-            } finally {
-                document.getElementById('loader').style.display = 'none';
-                e.target.value = ""; // Limpa input
-            }
+                alert(count > 0 ? `${count} passageiros importados!` : "Nenhum dado encontrado.");
+            } catch (err) { alert("Erro no PDF: " + err.message); } 
+            finally { document.getElementById('loader').style.display = 'none'; e.target.value = ""; }
         };
         reader.readAsArrayBuffer(file);
     };
 
-    // --- GERENCIAMENTO DA LISTA ---
+    // --- RENDERIZAÇÃO DA LISTA ---
     function renderPax(data) {
         const list = document.getElementById('lista-pax');
         list.innerHTML = "";
         
-        if(!data) {
-            list.innerHTML = "<p style='text-align:center; color:#999'>Lista vazia.</p>";
-            return;
+        let total = 0, ok = 0;
+
+        if(data) {
+            const arr = Object.values(data);
+            total = arr.length;
+            ok = arr.filter(p => p.ok).length;
+
+            arr.sort((a,b)=>parseInt(a.polt) - parseInt(b.polt)).forEach(p => {
+                const div = document.createElement('div');
+                div.className = `p-row ${p.ok ? 'ok' : ''}`;
+                div.innerHTML = `
+                    <div class="polt">${p.polt}</div>
+                    <div class="p-info" onclick="check('${p.bilhete}', ${p.ok})">
+                        <div class="p-name">${p.nome}</div>
+                        <div class="p-bil">Bilhete: ${p.bilhete}</div>
+                    </div>
+                    <button class="btn" style="width:50px; height:40px; background:var(--warning); margin:0; padding:0" onclick="modalEx('${p.bilhete}', '${p.nome}', event)">🧳</button>
+                `;
+                list.appendChild(div);
+            });
         }
 
-        Object.values(data).sort((a,b)=>parseInt(a.polt) - parseInt(b.polt)).forEach(p => {
-            const div = document.createElement('div');
-            div.className = `p-row ${p.ok ? 'ok' : ''}`;
-            
-            div.innerHTML = `
-                <div class="polt">${p.polt}</div>
-                <div class="p-info" onclick="check('${p.bilhete}', ${p.ok})">
-                    <div class="p-name">${p.nome}</div>
-                    <div class="p-bil">Bilhete: ${p.bilhete}</div>
-                </div>
-                <button class="btn" style="width:50px; height:40px; background:var(--warning); margin:0; padding:0" onclick="modalEx('${p.bilhete}', '${p.nome}', event)">🧳</button>
-            `;
-            list.appendChild(div);
-        });
+        // Atualiza os contadores
+        document.getElementById('cnt-total').innerText = total;
+        document.getElementById('cnt-ok').innerText = ok;
+        document.getElementById('cnt-rest').innerText = total - ok;
     }
 
     function check(bil, status) {
-        // Marca/Desmarca e salva quem fez
         db.ref(`viagens/${vKey}/pax/${bil}`).update({
             ok: !status,
             operador: !status ? userLogado.nome : null,
-            hora: !status ? new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) : null
+            hora: !status ? new Date().toLocaleTimeString('pt-BR') : null
         });
     }
 
-    // --- VIAGENS ---
+    // --- FUNÇÕES GERAIS ---
     function carregarViagens() {
         db.ref('viagens').on('value', s => {
             const data = s.val();
             const container = document.getElementById('list-viagens');
             container.innerHTML = "";
-            
-            if(!data) return;
-
             for(let k in data) {
                 const v = data[k];
-                const div = document.createElement('div');
-                div.className = 'card';
-                div.style.padding = '15px';
-                
-                // HTML da Viagem
-                let html = `
-                    <div onclick="abrirViagem('${k}', '${v.hora}', '${v.dest}')" style="cursor:pointer; display:flex; align-items:center;">
-                        <div style="font-size:18px; font-weight:bold; color:var(--primary); margin-right:10px;">${v.hora}</div>
-                        <div style="font-size:16px; color:#333;">${v.dest}</div>
+                container.innerHTML += `
+                <div class="card" style="padding:15px; display:flex; justify-content:space-between; align-items:center;">
+                    <div onclick="abrirViagem('${k}', '${v.hora}', '${v.dest}')" style="cursor:pointer; flex-grow:1">
+                        <div style="font-size:18px; font-weight:bold; color:var(--primary);">${v.hora}</div>
+                        <div style="font-size:14px; color:#333;">${v.dest}</div>
                     </div>
-                `;
-
-                // Botão de Excluir (Só Master Vê)
-                if(userLogado.role === 'master') {
-                    html += `<div class="trash" onclick="apagarViagem('${k}')">🗑️</div>`;
-                }
-
-                div.innerHTML = html;
-                container.appendChild(div);
+                    ${userLogado.role === 'master' ? `<span class="trash" onclick="apagarViagem('${k}')">🗑️</span>` : ''}
+                </div>`;
             }
         });
     }
@@ -348,143 +427,68 @@
     function criarViagem() {
         const h = document.getElementById('new-hora').value;
         const d = document.getElementById('new-dest').value;
-        if(h && d) {
-            db.ref('viagens').push({hora: h, dest: d.toUpperCase()});
-            document.getElementById('new-dest').value = "";
-        } else {
-            alert("Preencha hora e destino");
-        }
+        if(h && d) { db.ref('viagens').push({hora: h, dest: d.toUpperCase()}); document.getElementById('new-dest').value=""; }
     }
-
-    function apagarViagem(k) {
-        if(confirm("Tem certeza que deseja apagar esta viagem inteira?")) {
-            db.ref('viagens/'+k).remove();
-        }
-    }
-
+    function apagarViagem(k) { if(confirm("Apagar viagem?")) db.ref('viagens/'+k).remove(); }
     function abrirViagem(k, h, d) {
         vKey = k;
         document.getElementById('view-menu').style.display='none';
-        document.getElementById('view-detalhe').style.display='block';
+        document.getElementById('view-detalhe').style.display='flex'; // Flex para layout
+        document.getElementById('view-detalhe').style.flexDirection='column';
         document.getElementById('detalhe-titulo').innerText = `${h} - ${d}`;
         db.ref('viagens/'+k+'/pax').on('value', s => renderPax(s.val()));
     }
-
     function voltar() {
         if(scanner) scanner.stop().catch(()=>{});
         document.getElementById('reader').style.display = 'none';
         document.getElementById('view-menu').style.display='block';
         document.getElementById('view-detalhe').style.display='none';
     }
+    function limparMapa() { if(confirm("Limpar lista?")) db.ref(`viagens/${vKey}/pax`).remove(); }
 
-    function limparMapa() {
-        if(confirm("ATENÇÃO: Isso apagará todos os passageiros da lista. Continuar?")) {
-            db.ref(`viagens/${vKey}/pax`).remove();
-        }
-    }
-
-    // --- WHATSAPP E EXCESSO ---
     function finalizarEmbarque() {
         db.ref(`viagens/${vKey}`).once('value', s => {
             const v = s.val();
             const p = Object.values(v.pax || {});
-            const total = p.length;
-            const embarcados = p.filter(x => x.ok).length;
-            const faltam = total - embarcados;
-
-            const msg = `*🚌 RESUMO DE EMBARQUE*\n` +
-                        `---------------------------\n` +
-                        `🗓️ *Viagem:* ${v.hora} - ${v.dest}\n` +
-                        `✅ *Embarcados:* ${embarcados}\n` +
-                        `❌ *Faltam:* ${faltam}\n` +
-                        `👥 *Total na Lista:* ${total}\n` +
-                        `---------------------------\n` +
-                        `🆔 *Operador:* ${userLogado.nome}`;
-            
+            const ok = p.filter(x => x.ok).length;
+            const msg = `*🚌 RESUMO DE EMBARQUE*\n---------------------------\n🗓️ *Viagem:* ${v.hora} - ${v.dest}\n✅ *Embarcados:* ${ok}\n❌ *Faltam:* ${p.length - ok}\n👥 *Total:* ${p.length}\n---------------------------\n🆔 *Operador:* ${userLogado.nome}`;
             window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
         });
     }
 
     function modalEx(bil, nome, e) {
-        e.stopPropagation(); // Não clica na linha
-        paxEx = {bil, nome};
+        e.stopPropagation(); paxEx = {bil, nome};
         document.getElementById('ex-pax-nome').innerText = nome;
-        document.getElementById('modal-excesso').style.display = 'flex';
+        document.getElementById('modal-excesso').style.display='flex';
     }
 
     function zapExcesso() {
-        const qtd = document.getElementById('ex-qtd').value;
-        const val = document.getElementById('ex-val').value;
-        const ben = document.getElementById('ex-ben').value;
-
-        if(!qtd || !val || !ben) return alert("Preencha todos os campos!");
-
-        const msg = `*📦 EXCESSO DE BAGAGEM*\n` +
-                    `👤 *Pax:* ${paxEx.nome}\n` +
-                    `🎫 *Bilhete:* ${paxEx.bil}\n` +
-                    `📦 *Volumes:* ${qtd}\n` +
-                    `💰 *Valor:* R$ ${val}\n` +
-                    `🏅 *Comissão:* ${ben}\n` +
-                    `🆔 *Operador:* ${userLogado.nome}`;
-
+        const q = document.getElementById('ex-qtd').value, v = document.getElementById('ex-val').value, b = document.getElementById('ex-ben').value;
+        const msg = `*📦 EXCESSO DE BAGAGEM*\n👤 *Pax:* ${paxEx.nome}\n🎫 *Bilhete:* ${paxEx.bil}\n📦 *Volumes:* ${q}\n💰 *Valor:* R$ ${v}\n🏅 *Comissão:* ${b}\n🆔 *Operador:* ${userLogado.nome}`;
         window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
         document.getElementById('modal-excesso').style.display='none';
-        
-        // Limpar campos
-        document.getElementById('ex-qtd').value = "";
-        document.getElementById('ex-val').value = "";
     }
 
     function carregarBeneficiarios() {
         db.ref('usuarios').on('value', s => {
-            const u = s.val();
             const sel = document.getElementById('ex-ben');
             sel.innerHTML = '<option value="">Comissão para...</option><option value="Master">Master</option>';
-            if(u) {
-                for(let k in u) sel.innerHTML += `<option value="${u[k].nome}">${u[k].nome}</option>`;
-            }
+            s.forEach(c => sel.innerHTML += `<option value="${c.val().nome}">${c.val().nome}</option>`);
         });
     }
 
-    // --- QR CODE ---
     function startScan() {
-        const reader = document.getElementById('reader');
-        reader.style.display = 'block';
-        
+        const r = document.getElementById('reader'); r.style.display = 'block';
         scanner = new Html5Qrcode("reader");
-        scanner.start(
-            { facingMode: "environment" },
-            { fps: 10, qrbox: 250 },
-            (decodedText) => {
-                // Tenta achar 6 dígitos no QR Code
-                const match = decodedText.match(/\d{6}/);
-                if(match) {
-                    const bilheteLido = match[0];
-                    // Busca no firebase
-                    db.ref(`viagens/${vKey}/pax/${bilheteLido}`).once('value', snapshot => {
-                        if(snapshot.exists()) {
-                            db.ref(`viagens/${vKey}/pax/${bilheteLido}`).update({
-                                ok: true,
-                                operador: userLogado.nome,
-                                hora: new Date().toLocaleTimeString('pt-BR')
-                            });
-                            alert(`✅ ${snapshot.val().nome} Confirmado!`);
-                            scanner.stop();
-                            reader.style.display='none';
-                        } else {
-                            alert("❌ Bilhete não encontrado nesta viagem!");
-                        }
-                    });
-                }
-            },
-            (errorMessage) => {
-                // Erro de leitura normal, ignora
+        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
+            const b = txt.match(/\d{6}/);
+            if(b) {
+                db.ref(`viagens/${vKey}/pax/${b[0]}`).update({ok:true, operador:userLogado.nome, hora:new Date().toLocaleTimeString('pt-BR')});
+                alert(`✅ Bilhete ${b[0]} confirmado!`);
+                scanner.stop(); r.style.display='none';
             }
-        );
+        });
     }
 </script>
 </body>
 </html>
-
-
-
